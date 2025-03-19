@@ -21,9 +21,7 @@ def generar_nombre_usuario(nombre: str, primer_apellido: str, segundo_apellido: 
     # Nos aseguramos de que no sea mayor a 7 caracteres
     nombre_usuario = nombre_usuario[:7]
     
-    # Verificamos si el nombre de usuario ya existe en la base de datos
     while db.query(models.usersModels.User).filter(models.usersModels.User.nombre_usuario == nombre_usuario).first():
-        # Si ya existe, agregamos un número al final
         nombre_usuario = nombre_usuario[:6] + str(int(nombre_usuario[6:]) + 1 if nombre_usuario[6:].isdigit() else 1)
 
     return nombre_usuario
@@ -31,10 +29,16 @@ def generar_nombre_usuario(nombre: str, primer_apellido: str, segundo_apellido: 
 
 def create_persona(db: Session, persona: schemas.personaSchemas.PersonaCreate):
     try:
-        # Generamos el nombre de usuario automáticamente, pasando db
         nombre_usuario = generar_nombre_usuario(persona.nombre, persona.primer_apellido, persona.segundo_apellido, db)
+
+        correo_electronico = persona.correo_electronico.lower()
+        if 'gymbullsge' in correo_electronico:
+            rol = 'Administrador'
+        elif 'gymbullco' in correo_electronico:
+            rol = 'Colaborador'
+        else:
+            rol = 'Cliente' 
         
-        # Crear el registro en la tabla 'Persona'
         db_persona = models.personasModels.Persona(
             titulo_cortesia=persona.titulo_cortesia,
             nombre=persona.nombre,
@@ -53,15 +57,16 @@ def create_persona(db: Session, persona: schemas.personaSchemas.PersonaCreate):
         db.commit()
         db.refresh(db_persona)
         
-        # Crear el registro en la tabla 'tbb_usuarios'
         db_usuario = models.usersModels.User(
             nombre=persona.nombre,
             primer_apellido=persona.primer_apellido,
             segundo_apellido=persona.segundo_apellido,
-            nombre_usuario=nombre_usuario,  # El nombre de usuario generado automáticamente
+            nombre_usuario=nombre_usuario, 
             correo_electronico=persona.correo_electronico,
-            contrasena=persona.contrasena,  # Asegúrate de que ya esté cifrada
-            persona_id=db_persona.id  # Relación con la persona creada
+            numero_telefonico=persona.numero_telefonico,
+            rol=rol,
+            contrasena=persona.contrasena, 
+            persona_id=db_persona.id 
         )
         db.add(db_usuario)
         db.commit()

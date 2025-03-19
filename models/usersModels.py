@@ -3,8 +3,17 @@ from sqlalchemy.orm import relationship
 from config.db import Base
 import enum
 
+# Definimos el Enum para los roles
+class Rol(str, enum.Enum):
+    Administrador = "Administrador"
+    Visitante = "Visitante"
+    Entrenador = "Entrenador"
+    Colaborador = "Colaborador"
+    Cliente = "Cliente"
+
+# Definimos el Enum para el estatus
 class Estatus(str, enum.Enum):
-    Activo = "Activo",
+    Activo = "Activo"
     Inactivo = "Inactivo"
 
 class User(Base):
@@ -26,8 +35,11 @@ class User(Base):
     # Relación con la tabla 'tbb_personas'
     persona = relationship("Persona", back_populates="usuarios")
 
+    # Campo de rol
+    rol = Column(Enum(Rol), nullable=False, default=Rol.Cliente, comment="Rol del usuario")
+
     def __repr__(self):
         """
         Representación legible del objeto User.
         """
-        return f"<User(id={self.id}, nombre_usuario={self.nombre_usuario}, correo_electronico={self.correo_electronico})>"
+        return f"<User(id={self.id}, nombre_usuario={self.nombre_usuario}, correo_electronico={self.correo_electronico}, rol={self.rol})>"
