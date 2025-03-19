@@ -1,19 +1,23 @@
 from typing import Optional
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, date
 
 class PersonaBase(BaseModel):
     titulo_cortesia: Optional[str] = None
     nombre: str
     primer_apellido: str
     segundo_apellido: Optional[str] = None
+    numero_telefonico: str
     fecha_nacimiento: datetime
     fotografia: Optional[str] = None
+    correo_electronico: str
+    contrasena: str
     genero: str
     tipo_sangre: str
-    estatus: bool = True
+    estatus: str = "Activo" 
 
 class PersonaCreate(PersonaBase):
+    fecha_nacimiento: date
     fecha_registro: datetime = Field(default_factory=datetime.utcnow)  # 📌 Usa la fecha actual
 
 class PersonaUpdate(PersonaBase):

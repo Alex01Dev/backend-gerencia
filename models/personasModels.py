@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Date, DateTime, Enum, Boolean, func, text
+from sqlalchemy.orm import relationship
 from config.db import Base
 import enum
 
@@ -17,6 +18,10 @@ class TipoSangreEnum(enum.Enum):
     O_POSITIVO = "O_POSITIVO"
     O_NEGATIVO = "O_NEGATIVO"
 
+class Estatus(str, enum.Enum):
+    Activo = "Activo",
+    Inactivo = "Inactivo"
+
 class Persona(Base):
     """
     Modelo SQLAlchemy para representar personas en la base de datos.
@@ -30,11 +35,17 @@ class Persona(Base):
     segundo_apellido = Column(String(80), nullable=True, comment="Segundo apellido de la persona (opcional)")
     fecha_nacimiento = Column(Date, nullable=False, comment="Fecha de nacimiento de la persona")
     fotografia = Column(String(100), nullable=True, comment="Ruta o nombre del archivo de la foto de la persona")
+    numero_telefonico = Column(String(20), nullable=True, comment="Número de teléfono del usuario (opcional)")
+    correo_electronico = Column(String(100), nullable=False, unique=True, comment="Correo electrónico del usuario")
+    contrasena = Column(String(128), nullable=False, comment="Contraseña cifrada del usuario")
     genero = Column(Enum(GeneroEnum), nullable=False, comment="Género de la persona")
     tipo_sangre = Column(Enum(TipoSangreEnum), nullable=False, comment="Tipo de sangre de la persona")
-    estatus = Column(Boolean, nullable=False, server_default=text("1"), comment="Estatus del registro: 1 activo, 0 inactivo")
+    estatus = Column(Enum(Estatus), nullable=False, default=Estatus.Activo, comment="Estado actual del usuario")
     fecha_registro = Column(DateTime, default=func.now(), nullable=False, comment="Fecha de creación del registro")
     fecha_actualizacion = Column(DateTime, nullable=True, onupdate=func.now(), comment="Fecha de última actualización")
+
+    # Relación con la tabla 'tbb_usuarios' (uno a muchos)
+    usuarios = relationship("User", back_populates="persona", uselist=False)
 
     def __repr__(self):
         """

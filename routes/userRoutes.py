@@ -5,7 +5,6 @@ from datetime import timedelta
 from config.db import get_db
 from schemas.userSchemas import UserLogin, User, UserCreate, UserUpdate
 from config.jwt import create_access_token, get_current_user
-
 from crud.usersCrud import (
     authenticate_user,
     get_user as get_users_db,

@@ -2,7 +2,9 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 import models.personasModels
+import models.usersModels
 import schemas.personaSchemas
+from sqlalchemy.exc import SQLAlchemyError
 
 # Obtener todas las personas
 def get_personas(db: Session, skip: int = 0, limit: int = 10):
@@ -12,16 +14,35 @@ def get_personas(db: Session, skip: int = 0, limit: int = 10):
 def get_persona(db: Session, id: int):
     return db.query(models.personasModels.Persona).filter(models.personasModels.Persona.id == id).first()
 
-# Crear una nueva persona
-from sqlalchemy.exc import SQLAlchemyError
+def generar_nombre_usuario(nombre: str, primer_apellido: str, segundo_apellido: str, db: Session):
+    # Tomamos las primeras letras del nombre y apellidos
+    nombre_usuario = (nombre[0] + primer_apellido[:3] + segundo_apellido[:3]).lower()
+    
+    # Nos aseguramos de que no sea mayor a 7 caracteres
+    nombre_usuario = nombre_usuario[:7]
+    
+    # Verificamos si el nombre de usuario ya existe en la base de datos
+    while db.query(models.usersModels.User).filter(models.usersModels.User.nombre_usuario == nombre_usuario).first():
+        # Si ya existe, agregamos un número al final
+        nombre_usuario = nombre_usuario[:6] + str(int(nombre_usuario[6:]) + 1 if nombre_usuario[6:].isdigit() else 1)
+
+    return nombre_usuario
+
 
 def create_persona(db: Session, persona: schemas.personaSchemas.PersonaCreate):
     try:
+        # Generamos el nombre de usuario automáticamente, pasando db
+        nombre_usuario = generar_nombre_usuario(persona.nombre, persona.primer_apellido, persona.segundo_apellido, db)
+        
+        # Crear el registro en la tabla 'Persona'
         db_persona = models.personasModels.Persona(
             titulo_cortesia=persona.titulo_cortesia,
             nombre=persona.nombre,
             primer_apellido=persona.primer_apellido,
             segundo_apellido=persona.segundo_apellido,
+            numero_telefonico=persona.numero_telefonico,
+            correo_electronico=persona.correo_electronico,
+            contrasena=persona.contrasena,
             fecha_nacimiento=persona.fecha_nacimiento,
             fotografia=persona.fotografia,
             genero=persona.genero,
@@ -31,10 +52,26 @@ def create_persona(db: Session, persona: schemas.personaSchemas.PersonaCreate):
         db.add(db_persona)
         db.commit()
         db.refresh(db_persona)
+        
+        # Crear el registro en la tabla 'tbb_usuarios'
+        db_usuario = models.usersModels.User(
+            nombre=persona.nombre,
+            primer_apellido=persona.primer_apellido,
+            segundo_apellido=persona.segundo_apellido,
+            nombre_usuario=nombre_usuario,  # El nombre de usuario generado automáticamente
+            correo_electronico=persona.correo_electronico,
+            contrasena=persona.contrasena,  # Asegúrate de que ya esté cifrada
+            persona_id=db_persona.id  # Relación con la persona creada
+        )
+        db.add(db_usuario)
+        db.commit()
+        db.refresh(db_usuario)
+
         return db_persona
     except SQLAlchemyError as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error en la base de datos: {str(e)}")
+
 
 
 # Actualizar una persona existente
@@ -67,3 +104,5 @@ def delete_persona(db: Session, id: int):
     db.delete(db_persona)
     db.commit()
     return {"message": f"Persona con ID {id} eliminada correctamente"}
+
+
