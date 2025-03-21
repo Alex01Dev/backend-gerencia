@@ -1,6 +1,7 @@
 from typing import Optional
 from pydantic import BaseModel, Field
 from datetime import datetime, date
+from fastapi import UploadFile
 
 class PersonaBase(BaseModel):
     titulo_cortesia: Optional[str] = None
@@ -9,7 +10,7 @@ class PersonaBase(BaseModel):
     segundo_apellido: Optional[str] = None
     numero_telefonico: str
     fecha_nacimiento: datetime
-    fotografia: Optional[str] = None
+    fotografia: Optional[UploadFile] = None  # Cambiamos a UploadFile
     correo_electronico: str
     contrasena: str
     genero: str
@@ -18,14 +19,14 @@ class PersonaBase(BaseModel):
 
 class PersonaCreate(PersonaBase):
     fecha_nacimiento: date
-    fecha_registro: datetime = Field(default_factory=datetime.utcnow)  # 📌 Usa la fecha actual
+    fecha_registro: datetime = Field(default_factory=datetime.utcnow)
 
 class PersonaUpdate(PersonaBase):
     pass
 
 class Persona(PersonaBase):
     id: int
-    fecha_registro: datetime  # 📌 Ahora es obligatorio
+    fecha_registro: datetime
     fecha_actualizacion: Optional[datetime] = None
 
     class Config:
@@ -33,13 +34,12 @@ class Persona(PersonaBase):
 
 class GenerarPersonasRequest(BaseModel):
     cuantos: int
-    genero: str | None = None  # Puede ser 'H', 'M', 'N/B' o None
+    genero: str | None = None
     edad_min: int
     edad_max: int
 
 class LimpiarBD(BaseModel):
     contrasena: str
-    
 
 class PersonaTipoSangre(BaseModel):
     tipo_sangre: str

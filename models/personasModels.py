@@ -23,9 +23,6 @@ class Estatus(str, enum.Enum):
     Inactivo = "Inactivo"
 
 class Persona(Base):
-    """
-    Modelo SQLAlchemy para representar personas en la base de datos.
-    """
     __tablename__ = "tbb_personas"
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True, comment="ID único de la persona")
@@ -44,11 +41,7 @@ class Persona(Base):
     fecha_registro = Column(DateTime, default=func.now(), nullable=False, comment="Fecha de creación del registro")
     fecha_actualizacion = Column(DateTime, nullable=True, onupdate=func.now(), comment="Fecha de última actualización")
 
-    # Relación con la tabla 'tbb_usuarios' (uno a muchos)
     usuarios = relationship("User", back_populates="persona", uselist=False)
 
     def __repr__(self):
-        """
-        Representación legible del objeto Persona.
-        """
         return f"<Persona(id={self.id}, nombre={self.nombre}, genero={self.genero.value})>"
