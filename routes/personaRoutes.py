@@ -6,6 +6,7 @@ from config.db import get_db
 from schemas.personaSchemas import PersonaCreate, PersonaUpdate, Persona, GenerarPersonasRequest, PersonaTipoSangre, LimpiarBD
 from config.jwt import get_current_user
 import bcrypt
+import time
 
 from crud.personasCrud import create_persona
 # from crud.person import (
@@ -84,18 +85,11 @@ def limpiar_bd(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     
-@persona.post("/register-personas/", response_model=Persona, tags=["Personas"])
+@persona.post("/register-personas/", response_model=dict, tags=["Personas"])
 def registrar_persona(persona_data: PersonaCreate, db: Session = Depends(get_db)):
-    """
-    Registra una nueva persona en la base de datos.
-    """
-    # Cifrar la contraseña antes de almacenarla
     hashed_password = bcrypt.hashpw(persona_data.contrasena.encode('utf-8'), bcrypt.gensalt())
     persona_data.contrasena = hashed_password.decode('utf-8')
-
-    nueva_persona = create_persona(db, persona_data)
-    return nueva_persona
-
+    return create_persona(db, persona_data)
 
 # @persona.get("/personas", response_model=list[Persona], tags=["Personas"])
 # def read_personas(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):

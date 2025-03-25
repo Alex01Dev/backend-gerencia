@@ -59,3 +59,10 @@ async def read_user(id: int, db: Session = Depends(get_db), current_user: User =
     if db_user is None:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return db_user
+
+@user.get("/me", response_model=User, tags=["Usuarios"])
+async def get_current_user_data(current_user: User = Depends(get_current_user)):
+    """
+    Obtiene los datos del usuario autenticado.
+    """
+    return current_user
