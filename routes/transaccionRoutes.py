@@ -1,14 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from datetime import timedelta
+from datetime import timedelta, datetime
 from models.usersModels import User
+from typing import Optional, List
 from config.db import get_db
 from schemas.transaccionSchemas import (
     TransaccionCreate,
     TransaccionUpdate,
     TransaccionResponse,
-    TransaccionBalance,
+    TipoTransaccion,
+    MetodoPago,
+    EstatusTransaccion,
     TransaccionEstadisticas
 )
 from config.jwt import get_current_user
@@ -18,10 +21,7 @@ import time
 from crud.transaccionsCrud import (
     crear_transaccion,
     obtener_transaccion,
-    listar_transacciones,
-    actualizar_transaccion,
-    eliminar_transaccion,
-    obtener_balance,
+    obtener_todas_transacciones,
     obtener_usuarios_por_rol
 )
 
@@ -123,21 +123,69 @@ def registrar_transaccion(
             detail=f"Error al registrar transacción: {str(e)}"
         )
 
-
-    
-@transaccion.get("/usuario/{usuario_id}", response_model=list[TransaccionResponse], tags=["Transacciones"])
-def listar_transacciones_usuario(
-    usuario_id: int,
-    skip: int = 0,
-    limit: int = 100,
+@transaccion.get("/obtener-todo", response_model=List[TransaccionResponse], tags=["Transacciones"])
+def listar_todas_transacciones(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    skip: int = Query(0, description="Número de registros a saltar"),
+    limit: int = Query(100, description="Límite de registros por página", le=200),
+    tipo_transaccion: Optional[str] = Query(None, description="Tipo de transacción (Ingreso/Egreso)"),
+    metodo_pago: Optional[str] = Query(None, description="Método de pago"),
+    estatus: Optional[str] = Query(None, description="Estatus de transacción"),
+    usuario_id: Optional[int] = Query(None, description="ID de usuario"),
+    fecha_inicio: Optional[datetime] = Query(None, description="Fecha de inicio (YYYY-MM-DD)"),
+    fecha_fin: Optional[datetime] = Query(None, description="Fecha fin (YYYY-MM-DD)")
 ):
     """
-    Lista las transacciones de un usuario específico con paginación.
+    Obtiene todas las transacciones con opciones de filtrado y paginación.
     """
-    return listar_transacciones(db, usuario_id=usuario_id, skip=skip, limit=limit)
+    try:
+        # Convertir strings a Enums si fueron proporcionados
+        tipo_transaccion_enum = TipoTransaccion(tipo_transaccion) if tipo_transaccion else None
+        metodo_pago_enum = MetodoPago(metodo_pago) if metodo_pago else None
+        estatus_enum = EstatusTransaccion(estatus) if estatus else None
+        
+        transacciones = obtener_todas_transacciones(
+            db=db,
+            skip=skip,
+            limit=limit,
+            tipo_transaccion=tipo_transaccion_enum,
+            metodo_pago=metodo_pago_enum,
+            estatus=estatus_enum,
+            usuario_id=usuario_id,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin
+        )
 
+        # Convertir directamente a TransaccionResponse
+        return [
+            TransaccionResponse(
+                id=t.Transaccion.id,
+                detalles=t.Transaccion.detalles,
+                tipo_transaccion=t.Transaccion.tipo_transaccion.value,
+                metodo_pago=t.Transaccion.metodo_pago.value,
+                monto=t.Transaccion.monto,
+                estatus=t.Transaccion.estatus.value,
+                usuario_id=t.Transaccion.usuario_id,
+                fecha_registro=t.Transaccion.fecha_registro,
+                fecha_actualizacion=t.Transaccion.fecha_actualizacion,
+                nombre_usuario=t.nombre_usuario,
+                rol=t.rol
+            )
+            for t in transacciones
+        ]
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Valor de parámetro inválido: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener transacciones: {str(e)}"
+        )
+    
 @transaccion.get("/{transaccion_id}", response_model=TransaccionResponse, tags=["Transacciones"])
 def obtener_transaccion(
     transaccion_id: int, 
@@ -155,67 +203,3 @@ def obtener_transaccion(
         )
     return db_transaccion
 
-@transaccion.get("/usuario/{usuario_id}", response_model=list[TransaccionResponse], tags=["Transacciones"])
-def listar_transacciones_usuario(
-    usuario_id: int,
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Lista las transacciones de un usuario específico con paginación.
-    """
-    return listar_transacciones(
-        db,
-        usuario_id=usuario_id,
-        skip=skip,
-        limit=limit
-    )
-
-@transaccion.get("/usuario/{usuario_id}/balance", response_model=TransaccionBalance, tags=["Transacciones"])
-def obtener_balance_usuario(
-    usuario_id: int,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Obtiene el balance (ingresos - egresos) de un usuario específico.
-    """
-    balance = obtener_balance(db, usuario_id)
-    return {"usuario_id": usuario_id, "balance": balance}
-
-@transaccion.put("/{transaccion_id}", response_model=TransaccionResponse, tags=["Transacciones"])
-def actualizar_transaccion(
-    transaccion_id: int,
-    transaccion_data: TransaccionUpdate,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Actualiza los datos de una transacción existente.
-    """
-    db_transaccion = actualizar_transaccion(db, transaccion_id, transaccion_data)
-    if not db_transaccion:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transacción no encontrada"
-        )
-    return db_transaccion
-
-@transaccion.delete("/{transaccion_id}", response_model=TransaccionResponse, tags=["Transacciones"])
-def cancelar_transaccion(
-    transaccion_id: int,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Cancela una transacción (eliminación lógica cambiando el estatus).
-    """
-    db_transaccion = eliminar_transaccion(db, transaccion_id)
-    if not db_transaccion:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transacción no encontrada"
-        )
-    return db_transaccion

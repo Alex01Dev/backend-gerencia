@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime
-from models.transaccionsModels import Transaccion
+from models.transaccionsModels import Transaccion, TipoTransaccion, MetodoPago, EstatusTransaccion
 from schemas.transaccionSchemas import TransaccionCreate, TransaccionUpdate, EstatusTransaccion
 from fastapi import HTTPException, status
 from typing import List, Optional
@@ -32,80 +32,7 @@ def crear_transaccion(db: Session, transaccion_data: dict) -> Transaccion:
 def obtener_transaccion(db: Session, transaccion_id: int) -> Optional[Transaccion]:
     return db.query(Transaccion).filter(Transaccion.ID == transaccion_id).first()
 
-def listar_transacciones(
-    db: Session,
-    skip: int = 0,
-    limit: int = 100,
-    usuario_id: Optional[int] = None,
-    tipo: Optional[str] = None,
-    estatus: Optional[str] = None
-) -> List[Transaccion]:
-    query = db.query(Transaccion)
-    
-    if usuario_id:
-        query = query.filter(Transaccion.Usuario_ID == usuario_id)
-    if tipo:
-        query = query.filter(Transaccion.Tipo == tipo)
-    if estatus:
-        query = query.filter(Transaccion.Estatus == estatus)
-        
-    return query.offset(skip).limit(limit).all()
 
-# UPDATE
-def actualizar_transaccion(
-    db: Session,
-    transaccion_id: int,
-    transaccion: TransaccionUpdate
-) -> Optional[Transaccion]:
-    try:
-        db_transaccion = obtener_transaccion(db, transaccion_id)
-        if not db_transaccion:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Transacción no encontrada"
-            )
-        
-        update_data = transaccion.model_dump(exclude_unset=True)
-        
-        for field, value in update_data.items():
-            setattr(db_transaccion, field, value)
-        
-        db_transaccion.Fecha_Actualizacion = datetime.now()
-        db.commit()
-        db.refresh(db_transaccion)
-        return db_transaccion
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al actualizar transacción: {str(e)}"
-        )
-
-# DELETE (Soft Delete)
-def eliminar_transaccion(db: Session, transaccion_id: int) -> Optional[Transaccion]:
-    try:
-        db_transaccion = obtener_transaccion(db, transaccion_id)
-        if not db_transaccion:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Transacción no encontrada"
-            )
-        
-        db_transaccion.Estatus = EstatusTransaccion.CANCELADA
-        db_transaccion.Fecha_Actualizacion = datetime.now()
-        db.commit()
-        db.refresh(db_transaccion)
-        return db_transaccion
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al cancelar transacción: {str(e)}"
-        )
 
 # Funciones adicionales
 def obtener_total_ingresos(db: Session, usuario_id: int) -> float:
@@ -161,3 +88,47 @@ def obtener_estadisticas(db: Session) -> dict:
     
 def obtener_usuarios_por_rol(db: Session, rol: str):
     return db.query(User).filter(User.rol == rol).all()
+
+def obtener_todas_transacciones(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    tipo_transaccion: Optional[TipoTransaccion] = None,
+    metodo_pago: Optional[MetodoPago] = None,
+    estatus: Optional[EstatusTransaccion] = None,
+    usuario_id: Optional[int] = None,
+    fecha_inicio: Optional[datetime] = None,
+    fecha_fin: Optional[datetime] = None
+) -> List[Transaccion]:
+    """
+    Obtiene todas las transacciones con filtros opcionales y paginación.
+    """
+    try:
+        query = db.query(
+            Transaccion,
+            User.nombre.label("nombre_usuario"),
+            User.rol
+        ).join(User, Transaccion.usuario_id == User.id)
+
+        # Aplicar filtros
+        if tipo_transaccion:
+            query = query.filter(Transaccion.tipo_transaccion == tipo_transaccion)
+        if metodo_pago:
+            query = query.filter(Transaccion.metodo_pago == metodo_pago)
+        if estatus:
+            query = query.filter(Transaccion.estatus == estatus)
+        if usuario_id:
+            query = query.filter(Transaccion.usuario_id == usuario_id)
+        if fecha_inicio:
+            query = query.filter(Transaccion.fecha_registro >= fecha_inicio)
+        if fecha_fin:
+            query = query.filter(Transaccion.fecha_registro <= fecha_fin)
+
+        # Ordenar y paginar
+        return query.order_by(Transaccion.fecha_registro.desc()).offset(skip).limit(limit).all()
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener transacciones: {str(e)}"
+        )

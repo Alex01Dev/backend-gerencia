@@ -34,16 +34,21 @@ class TransaccionUpdate(BaseModel):
     monto: Optional[float] = None
     estatus: Optional[EstatusTransaccion] = None
 
-class TransaccionInDB(TransaccionBase):
+class TransaccionResponse(BaseModel):
     id: int
+    detalles: str
+    tipo_transaccion: str
+    metodo_pago: str
+    monto: float
+    estatus: str
+    usuario_id: int
     fecha_registro: datetime
     fecha_actualizacion: Optional[datetime] = None
+    nombre_usuario: str
+    rol: str
 
     class Config:
         from_attributes = True
-
-class TransaccionResponse(TransaccionInDB):
-    pass
 
 class TransaccionBalance(BaseModel):
     usuario_id: int
@@ -54,15 +59,3 @@ class TransaccionEstadisticas(BaseModel):
     total_egresos: float
     balance_general: float
     transacciones_totales: int
-
-# Esquema para respuesta de listado con paginación
-class TransaccionResponse(BaseModel):
-    id: int
-    detalles: str
-    tipo_transaccion: str
-    metodo_pago: str
-    monto: float
-    estatus: str
-    usuario_id: int
-    nombre_usuario: str  # Nombre del usuario
-    rol: str  # Rol del usuario
