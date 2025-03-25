@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config.db import engine, Base
 from routes.userRoutes import user
 from routes.personaRoutes import persona
+from routes.transaccionRoutes import transaccion
 
 app = FastAPI(
     title="Modulo Gerencia Gimnasio Bulls",
@@ -12,7 +13,7 @@ app = FastAPI(
 # 🔹 Agregar configuración de CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "http://192.168.5.101:8080"],  # Permitir solo estos orígenes
+    allow_origins=["*"], # Permitir solo estos orígenes
     allow_credentials=True,
     allow_methods=["*"],  # Permitir todos los métodos (GET, POST, PUT, DELETE)
     allow_headers=["*"],  # Permitir todos los headers
@@ -21,6 +22,7 @@ app.add_middleware(
 # 🔹 Incluir rutas del usuario
 app.include_router(user)
 app.include_router(persona)
+app.include_router(transaccion)
 
 # 🔹 Crear tablas en la base de datos
 Base.metadata.create_all(bind=engine)

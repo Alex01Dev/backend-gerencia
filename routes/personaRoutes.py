@@ -85,7 +85,7 @@ def limpiar_bd(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     
-@persona.post("/register-personas/", response_model=dict, tags=["Personas"])
+@persona.post("/register-personas", response_model=dict, tags=["Personas"])
 def registrar_persona(persona_data: PersonaCreate, db: Session = Depends(get_db)):
     hashed_password = bcrypt.hashpw(persona_data.contrasena.encode('utf-8'), bcrypt.gensalt())
     persona_data.contrasena = hashed_password.decode('utf-8')
