@@ -5,7 +5,7 @@ from models.transaccionsModels import Transaccion
 from schemas.transaccionSchemas import TransaccionCreate, TransaccionUpdate, EstatusTransaccion
 from fastapi import HTTPException, status
 from typing import List, Optional
-
+from models.usersModels import User
 # CREATE
 def crear_transaccion(db: Session, transaccion_data: dict) -> Transaccion:
     try:
@@ -158,3 +158,6 @@ def obtener_estadisticas(db: Session) -> dict:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al obtener estadísticas: {str(e)}"
         )
+    
+def obtener_usuarios_por_rol(db: Session, rol: str):
+    return db.query(User).filter(User.rol == rol).all()

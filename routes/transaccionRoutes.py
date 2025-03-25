@@ -22,7 +22,7 @@ from crud.transaccionsCrud import (
     actualizar_transaccion,
     eliminar_transaccion,
     obtener_balance,
-    obtener_estadisticas
+    obtener_usuarios_por_rol
 )
 
 # Inicializamos el enrutador de transacciones
@@ -71,6 +71,30 @@ def generar_transacciones_masivas(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+@transaccion.get("/usuarios-por-transaccion", tags=["Transacciones"])
+def obtener_usuarios_por_transaccion(
+    tipo_transaccion: str,
+    rol: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Obtiene usuarios según el tipo de transacción y rol.
+    - Si `tipo_transaccion` es "ingreso" y `rol` es "cliente" → devuelve clientes.
+    - Si `tipo_transaccion` es "egreso" y `rol` es "colaborador" → devuelve colaboradores.
+    - Si `tipo_transaccion` es "egreso" y `rol` es "administrador" → devuelve administradores.
+    """
+    if tipo_transaccion not in ["ingreso", "egreso"]:
+        raise HTTPException(status_code=400, detail="Tipo de transacción inválido.")
+    
+    usuarios = obtener_usuarios_por_rol(db, rol)
+    
+    if not usuarios:
+        raise HTTPException(status_code=404, detail="No se encontraron usuarios con ese rol.")
+
+    return usuarios
+
 
 @transaccion.post("/register-tra/", response_model=TransaccionResponse, tags=["Transacciones"])
 def registrar_transaccion(
