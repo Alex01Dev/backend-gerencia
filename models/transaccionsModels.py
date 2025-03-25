@@ -25,7 +25,7 @@ class Transaccion(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     usuario_id = Column(Integer, ForeignKey('tbb_usuarios.id'), nullable=False)
     detalles = Column(String(255), nullable=False)
-    tipo = Column(Enum(TipoTransaccion), nullable=False)
+    tipo_transaccion = Column(Enum(TipoTransaccion), nullable=False)
     metodo_pago = Column(Enum(MetodoPago), nullable=False)
     monto = Column(Float, nullable=False)
     estatus = Column(Enum(EstatusTransaccion), nullable=False, default=EstatusTransaccion.PROCESANDO)
@@ -36,4 +36,4 @@ class Transaccion(Base):
     usuario = relationship("User", back_populates="transacciones")
 
     def __repr__(self):
-        return f"<Transaccion(id={self.id}, tipo={self.tipo}, monto={self.monto}, estatus={self.estatus})>"
+        return f"<Transaccion(id={self.id}, tipo={self.tipo_transaccion}, monto={self.monto}, estatus={self.estatus})>"

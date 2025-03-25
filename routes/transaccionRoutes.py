@@ -85,7 +85,7 @@ def obtener_usuarios_por_transaccion(
     - Si `tipo_transaccion` es "egreso" y `rol` es "colaborador" → devuelve colaboradores.
     - Si `tipo_transaccion` es "egreso" y `rol` es "administrador" → devuelve administradores.
     """
-    if tipo_transaccion not in ["ingreso", "egreso"]:
+    if tipo_transaccion not in ["Ingreso", "Egreso"]:
         raise HTTPException(status_code=400, detail="Tipo de transacción inválido.")
     
     usuarios = obtener_usuarios_por_rol(db, rol)
@@ -99,24 +99,31 @@ def obtener_usuarios_por_transaccion(
 @transaccion.post("/register-tra/", response_model=TransaccionResponse, tags=["Transacciones"])
 def registrar_transaccion(
     transaccion_data: TransaccionCreate, 
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)  # Cambia dict por el modelo User
+    db: Session = Depends(get_db)
 ):
     """
-    Registra una nueva transacción en el sistema usando el usuario logueado.
+    Registra una nueva transacción en el sistema usando el usuario_id enviado desde el frontend.
     """
     try:
-        # Crear un diccionario con todos los datos de la transacción
+        # Convertimos la transacción a diccionario
         transaccion_dict = transaccion_data.model_dump()
-        # Agregar el ID del usuario logueado (accediendo al atributo id del objeto User)
-        transaccion_dict["usuario_id"] = current_user.id
-        
-        return crear_transaccion(db, transaccion_dict)
+
+        # Aquí se usa el usuario_id enviado desde el frontend
+        # No se utiliza el current_user.id, sino el usuario_id del frontend
+        if 'usuario_id' in transaccion_dict:
+            transaccion_dict['usuario_id'] = transaccion_dict['usuario_id']  # Guardamos el usuario_id
+
+        # Crear la transacción con el usuario_id que se pasó
+        nueva_transaccion = crear_transaccion(db, transaccion_dict)
+
+        return nueva_transaccion
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al registrar transacción: {str(e)}"
         )
+
+
     
 @transaccion.get("/usuario/{usuario_id}", response_model=list[TransaccionResponse], tags=["Transacciones"])
 def listar_transacciones_usuario(

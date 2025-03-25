@@ -10,9 +10,9 @@ from models.usersModels import User
 def crear_transaccion(db: Session, transaccion_data: dict) -> Transaccion:
     try:
         db_transaccion = Transaccion(
-            usuario_id=transaccion_data["usuario_id"],  # Ahora viene del usuario logueado
+            usuario_id=transaccion_data["usuario_id"],
             detalles=transaccion_data["detalles"],
-            tipo=transaccion_data["tipo"],
+            tipo_transaccion=transaccion_data["tipo_transaccion"],
             metodo_pago=transaccion_data["metodo_pago"],
             monto=transaccion_data["monto"],
             estatus=transaccion_data.get("estatus", EstatusTransaccion.PROCESANDO)

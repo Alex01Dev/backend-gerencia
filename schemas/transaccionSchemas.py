@@ -18,17 +18,18 @@ class EstatusTransaccion(str, Enum):
 
 class TransaccionBase(BaseModel):
     detalles: str
-    tipo: TipoTransaccion
+    tipo_transaccion: TipoTransaccion
     metodo_pago: MetodoPago
     monto: float
     estatus: Optional[EstatusTransaccion] = EstatusTransaccion.PROCESANDO
+    usuario_id: int
 
 class TransaccionCreate(TransaccionBase):
     pass
 
 class TransaccionUpdate(BaseModel):
     detalles: Optional[str] = None
-    tipo: Optional[TipoTransaccion] = None
+    tipo_transaccion: Optional[TipoTransaccion] = None
     metodo_pago: Optional[MetodoPago] = None
     monto: Optional[float] = None
     estatus: Optional[EstatusTransaccion] = None
@@ -55,8 +56,13 @@ class TransaccionEstadisticas(BaseModel):
     transacciones_totales: int
 
 # Esquema para respuesta de listado con paginación
-class TransaccionListResponse(BaseModel):
-    transacciones: List[TransaccionResponse]
-    total: int
-    skip: int
-    limit: int
+class TransaccionResponse(BaseModel):
+    id: int
+    detalles: str
+    tipo_transaccion: str
+    metodo_pago: str
+    monto: float
+    estatus: str
+    usuario_id: int
+    nombre_usuario: str  # Nombre del usuario
+    rol: str  # Rol del usuario
