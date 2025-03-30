@@ -23,7 +23,7 @@ class Transaccion(Base):
     __tablename__ = "tbb_transacciones"
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
-    usuario_id = Column(Integer, ForeignKey('tbb_usuarios.id'), nullable=False)
+    usuario_id = Column(Integer, ForeignKey('tbb_usuarios.id'), nullable=False)#USUARIOS ROLES_id
     detalles = Column(String(255), nullable=False)
     tipo_transaccion = Column(Enum(TipoTransaccion), nullable=False)
     metodo_pago = Column(Enum(MetodoPago), nullable=False)
@@ -37,3 +37,8 @@ class Transaccion(Base):
 
     def __repr__(self):
         return f"<Transaccion(id={self.id}, tipo={self.tipo_transaccion}, monto={self.monto}, estatus={self.estatus})>"
+    
+
+
+#PROVEEDORES DEPENDE DE PERSONA
+#RFC QUE FALTEN QUE SI VAN EN PROOVEDORES PERO NO VAN EN PERSONA

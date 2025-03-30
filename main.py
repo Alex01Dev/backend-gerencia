@@ -4,6 +4,8 @@ from config.db import engine, Base
 from routes.userRoutes import user
 from routes.personaRoutes import persona
 from routes.transaccionRoutes import transaccion
+from routes.sucursalRoutes import sucursal
+from routes.gerenteRoutes import gerente
 
 app = FastAPI(
     title="Modulo Gerencia Gimnasio Bulls",
@@ -23,6 +25,8 @@ app.add_middleware(
 app.include_router(user)
 app.include_router(persona)
 app.include_router(transaccion)
+app.include_router(sucursal)
+app.include_router(gerente)
 
 # 🔹 Crear tablas en la base de datos
 Base.metadata.create_all(bind=engine)
