@@ -10,7 +10,7 @@ class UsuarioRol(Base):
         'comment': 'Tabla intermedia que establece la relación entre usuarios y roles, permitiendo asignar múltiples roles a un usuario y definir sus permisos en el sistema.'
     }
 
-    Usuario_ID = Column(Integer, ForeignKey('tbb_usuarios.ID'), primary_key=True,
+    Usuario_ID = Column(Integer, ForeignKey('tbb_usuarios.id'), primary_key=True,  # Cambiado 'ID' a 'id'
                         comment='Descripción: Identificador del Usuario. Hace referencia a la tabla Usuarios.\nNaturaleza: Cuantitativa\nDominio: Números enteros positivos\nComposición: 1 a 9 dígitos (0-9)')
 
     Rol_ID = Column(Integer, ForeignKey('tbc_roles.ID'), primary_key=True,

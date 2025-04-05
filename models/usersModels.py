@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from config.db import Base
 
-
 class Usuario(Base):
     __tablename__ = "tbb_usuarios"
     __table_args__ = (
@@ -21,8 +20,10 @@ class Usuario(Base):
     fecha_registro = Column(DateTime, nullable=False, default=datetime.utcnow)
     fecha_actualizacion = Column(DateTime, nullable=True)
 
-    # Relaciones
-    persona = relationship("Persona", back_populates="usuario")  # si existe la clase Persona
+    # Relación con Persona
+    persona = relationship("Persona", back_populates="usuario")
 
+     # Relación con Transacciones
+    transacciones = relationship("Transaccion", back_populates="usuario")
     def __repr__(self):
         return f"<Usuario(id={self.id}, nombre_usuario='{self.nombre_usuario}', estatus='{self.estatus}')>"

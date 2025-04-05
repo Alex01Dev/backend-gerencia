@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import timedelta, datetime
-from models.usersModels import User
+from models.usersModels import Usuario
 from typing import Optional, List
 from config.db import get_db
 from schemas.transaccionSchemas import (
@@ -77,7 +77,7 @@ def obtener_usuarios_por_transaccion(
     tipo_transaccion: str,
     rol: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Usuario = Depends(get_current_user)
 ):
     """
     Obtiene usuarios según el tipo de transacción y rol.

@@ -4,7 +4,7 @@ from fastapi import HTTPException, UploadFile
 import models.personasModels
 import models.usersModels
 import models.usuarioRolesModels
-from models.usuarioRolesModels import UsuarioRo
+from models.usuarioRolesModels import UsuarioRol
 import models.rolesModels
 from models.rolesModels import Rol
 import schemas.personaSchemas

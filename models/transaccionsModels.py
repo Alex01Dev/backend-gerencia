@@ -33,7 +33,7 @@ class Transaccion(Base):
     fecha_actualizacion = Column(DateTime, server_onupdate=func.now(), nullable=True)
 
     # Relaciones
-    usuario = relationship("User", back_populates="transacciones")
+    usuario = relationship("Usuario", back_populates="transacciones")
 
     def __repr__(self):
         return f"<Transaccion(id={self.id}, tipo={self.tipo_transaccion}, monto={self.monto}, estatus={self.estatus})>"

@@ -3,7 +3,7 @@ from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials  # Importa HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from crud.usersCrud import get_user_by_username
+from crud.usersCrud import get_user_by_nombre_usuario
 from config.db import get_db
 from typing import Optional
 
@@ -51,7 +51,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         print(f"Error al decodificar el token: {e}")  # Depuración
         raise credentials_exception
 
-    user = get_user_by_username(db, username=username)
+    user = get_user_by_nombre_usuario(db, username=username)
     if user is None:
         print("Usuario no encontrado en la base de datos.")  # Depuración
         raise credentials_exception

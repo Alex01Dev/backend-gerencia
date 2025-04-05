@@ -18,7 +18,7 @@ class Sucursal(Base):
                    comment="Contiene el nombre de la sucursal registrada en el sistema.")
     Direccion = Column(String(150), nullable=False, 
                       comment="Guarda la dirección física donde se encuentra la sucursal.")
-    Responsable_Id = Column(Integer, ForeignKey('tbb_gerentes.ID'), nullable=False, #SE CAMBIA a
+    Responsable_Id = Column(Integer, ForeignKey('tbd_usuarios_roles.Usuario_ID'), nullable=False, #SE CAMBIA a
                           comment="Identificador del Gerente responsable de la sucursal.") #VINCULAR CON USUARIO ROL
     Capacidad_Maxima = Column(Integer, nullable=False,
                             comment="Número máximo de clientes permitidos en la sucursal.")
@@ -33,8 +33,7 @@ class Sucursal(Base):
 
     #AGREGAR DATOS DE CONTACTO
 
-    # Relación con Gerente
-    responsable = relationship("Gerente", back_populates="sucursales")
+
 
     def __repr__(self):
         return f"<Sucursal(Id={self.Id}, Nombre='{self.Nombre}', Estatus={self.Estatus})>"

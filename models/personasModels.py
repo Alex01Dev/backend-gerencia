@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Enum, Boolean, func, text
+from sqlalchemy import Column, Integer, String, Date, DateTime, Enum, Boolean, func
 from sqlalchemy.orm import relationship
 from config.db import Base
 import enum
@@ -19,7 +19,7 @@ class TipoSangreEnum(enum.Enum):
     O_NEGATIVO = "O_NEGATIVO"
 
 class Estatus(str, enum.Enum):
-    Activo = "Activo",
+    Activo = "Activo"
     Inactivo = "Inactivo"
 
 class Persona(Base):
@@ -39,7 +39,8 @@ class Persona(Base):
     fecha_registro = Column(DateTime, default=func.now(), nullable=False, comment="Fecha de creación del registro")
     fecha_actualizacion = Column(DateTime, nullable=True, onupdate=func.now(), comment="Fecha de última actualización")
 
-    usuarios = relationship("User", back_populates="persona", uselist=False)
+    # Relación con Usuario
+    usuario = relationship("Usuario", back_populates="persona", uselist=False)
 
     def __repr__(self):
         return f"<Persona(id={self.id}, nombre={self.nombre}, genero={self.genero.value})>"

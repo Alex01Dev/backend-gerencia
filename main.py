@@ -5,7 +5,11 @@ from routes.userRoutes import user
 from routes.personaRoutes import persona
 from routes.transaccionRoutes import transaccion
 from routes.sucursalRoutes import sucursal
-from routes.gerenteRoutes import gerente
+
+# Importar los seeders para registrar los eventos after_create
+from seeders.personaSeeder import seed_personas
+from seeders.usuarioSeeder import seed_usuarios
+from seeders.eventlisten import seed_roles
 
 app = FastAPI(
     title="Modulo Gerencia Gimnasio Bulls",
@@ -15,7 +19,7 @@ app = FastAPI(
 # 🔹 Agregar configuración de CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Permitir solo estos orígenes
+    allow_origins=["*"],  # Permitir solo estos orígenes
     allow_credentials=True,
     allow_methods=["*"],  # Permitir todos los métodos (GET, POST, PUT, DELETE)
     allow_headers=["*"],  # Permitir todos los headers
@@ -26,7 +30,6 @@ app.include_router(user)
 app.include_router(persona)
 app.include_router(transaccion)
 app.include_router(sucursal)
-app.include_router(gerente)
 
 # 🔹 Crear tablas en la base de datos
 Base.metadata.create_all(bind=engine)
