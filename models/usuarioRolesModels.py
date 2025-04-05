@@ -26,7 +26,7 @@ class UsuarioRol(Base):
                                  comment='Descripción: Última fecha y hora en que se modificó la asignación de rol al usuario.\nNaturaleza: Cuantitativa\nDominio: Fecha y hora válida')
 
     # Relaciones
-    usuario = relationship("Usuario", back_populates="roles")
+    usuario = relationship("Usuario")
     rol = relationship("Rol")
 
     def __repr__(self):

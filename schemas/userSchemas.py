@@ -5,7 +5,7 @@ from datetime import datetime
 class UsuarioBase(BaseModel):
     nombre_usuario: str
     estatus: str = "Activo"
-    rol_id: int
+
 
 class UsuarioCreate(UsuarioBase):
     persona_id: int
@@ -17,7 +17,7 @@ class UsuarioUpdate(BaseModel):
     correo_electronico: Optional[EmailStr] = None
     contrasena: Optional[str] = None
     estatus: Optional[str] = None
-    rol_id: Optional[int] = None
+
 
 class Usuario(UsuarioBase):
     id: int

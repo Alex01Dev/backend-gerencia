@@ -6,7 +6,7 @@ from config.db import engine
 # Datos iniciales para la tabla de roles
 roles_iniciales = [
     {"Nombre": "Gerente", "Descripcion": "Responsable de la gestión general del sistema.", "Estatus": True},
-    {"Nombre": "Administrador", "Descripcion": "Tiene acceso completo al sistema.", "Estatus": True},
+    {"Nombre": "Cliente", "Descripcion": "Cliente del Gym que va a adquirir un producto o servicio.", "Estatus": True},
     {"Nombre": "Visitante", "Descripcion": "Usuario con acceso limitado para explorar el sistema.", "Estatus": True},
 ]
 
