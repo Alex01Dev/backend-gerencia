@@ -35,17 +35,33 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     )
     try:
         token = credentials.credentials
-        print(f"Token recibido: {token}")  # Depuración: Imprime el token
+        print(f"Token recibido: {token}")  # Depuración
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(f"Payload decodificado: {payload}")  # Depuración: Imprime el payload
+        print(f"Payload decodificado: {payload}")  # Depuración
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-    except JWTError as e:
-        print(f"Error al decodificar el token: {e}")  # Depuración: Imprime el error
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="El token ha expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except jwt.JWTError as e:
+        print(f"Error al decodificar el token: {e}")  # Depuración
         raise credentials_exception
 
     user = get_user_by_username(db, username=username)
     if user is None:
+        print("Usuario no encontrado en la base de datos.")  # Depuración
         raise credentials_exception
+
+    # Validar que el usuario tiene un rol asignado
+    if not hasattr(user, "rol") or user.rol is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El usuario no tiene un rol asignado"
+        )
+
+    print(f"Usuario obtenido: {user}, Rol: {user.rol}")  # Depuración
     return user
