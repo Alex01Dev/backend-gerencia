@@ -3,6 +3,8 @@ from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from config.db import get_db
+from models.usuarioRolesModels import UsuarioRol 
+from models.usersModels import Usuario
 from schemas.userSchemas import UsuarioLogin, Usuario, UsuarioCreate, UsuarioUpdate
 from config.jwt import create_access_token, get_current_user
 from crud.usersCrud import (
@@ -16,9 +18,11 @@ from crud.usersCrud import (
 user = APIRouter()
 security = HTTPBearer()
 
+
 # ✅ Endpoint de autenticación
 @user.post("/login", response_model=dict, tags=["Autenticación"])
 async def login(user_data: UsuarioLogin, db: Session = Depends(get_db)):
+    # Autenticar al usuario
     user = authenticate_user(
         db, nombre_usuario=user_data.nombre_usuario, contrasena=user_data.contrasena
     )
@@ -28,11 +32,34 @@ async def login(user_data: UsuarioLogin, db: Session = Depends(get_db)):
             detail="Credenciales inválidas",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
+    
+    # Verificar el rol del usuario
+    esGerente = False
+    usuario_rol = db.query(UsuarioRol).filter(UsuarioRol.Usuario_ID == user.id).first()
+    
+    if usuario_rol and usuario_rol.Rol_ID == 1:  # 1 = Rol de gerente
+        esGerente = True
+    
+    # Generar el token JWT (para todos los usuarios, no solo gerentes)
     access_token_expires = timedelta(minutes=30)
-    access_token = create_access_token(data={"sub": user.nombre_usuario}, expires_delta=access_token_expires)
+    access_token = create_access_token(
+        data={"sub": user.nombre_usuario, "esGerente": esGerente},  # Incluir rol en el token
+        expires_delta=access_token_expires
+    )
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    # Debug: Verificar el valor de esGerente
+    print(f"DEBUG - Valor de esGerente: {esGerente}")
+    print(f"DEBUG - Usuario: {user.nombre_usuario}, ID: {user.id}")
+    if usuario_rol:
+        print(f"DEBUG - Rol encontrado: ID {usuario_rol.Rol_ID}")
+    else:
+        print("DEBUG - No se encontró rol para el usuario")
+
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "esGerente": esGerente  # También devolverlo en la respuesta directa
+    }
 
 @user.post("/register", response_model=Usuario, tags=["Usuarios"])
 async def register_new_user(user_data: UsuarioCreate, db: Session = Depends(get_db)):
