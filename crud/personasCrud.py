@@ -3,7 +3,10 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, UploadFile
 import models.personasModels
 import models.usersModels
-import models.usuariosRolesModels
+import models.usuarioRolesModels
+from models.usuarioRolesModels import UsuarioRo
+import models.rolesModels
+from models.rolesModels import Rol
 import schemas.personaSchemas
 from sqlalchemy.exc import SQLAlchemyError
 import os
