@@ -20,7 +20,7 @@ security = HTTPBearer()
 @user.post("/login", response_model=dict, tags=["Autenticación"])
 async def login(user_data: UsuarioLogin, db: Session = Depends(get_db)):
     user = authenticate_user(
-        db, nombre_usuario=user_data.nombre_usario, contrasena=user_data.contrasena
+        db, nombre_usuario=user_data.nombre_usuario, contrasena=user_data.contrasena
     )
     if not user:
         raise HTTPException(

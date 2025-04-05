@@ -19,7 +19,7 @@ class UsuarioUpdate(BaseModel):
     estatus: Optional[str] = None
 
 class UsuarioLogin(BaseModel):
-    nombre_usario: Optional[str] = None
+    nombre_usuario: Optional[str] = None
     contrasena:str
 
 class Usuario(UsuarioBase):

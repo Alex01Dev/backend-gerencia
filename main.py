@@ -10,6 +10,7 @@ from routes.sucursalRoutes import sucursal
 from seeders.personaSeeder import seed_personas
 from seeders.usuarioSeeder import seed_usuarios
 from seeders.eventlisten import seed_roles
+from seeders.usuariosRoles import seed_usuarios_roles
 
 app = FastAPI(
     title="Modulo Gerencia Gimnasio Bulls",

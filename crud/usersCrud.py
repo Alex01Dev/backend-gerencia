@@ -12,11 +12,10 @@ def verify_contrasena(plain_contrasena: str, hashed_contrasena: str):
     return pwd_context.verify(plain_contrasena, hashed_contrasena)
 
 # Función para autenticar usuarios
-def authenticate_user(db: Session, contrasena: str, nombre_usuario: Optional[str] = None):
-    if nombre_usuario:
-        usuario = db.query(models.usersModels.Usuario).filter(models.usersModels.Usuario.nombre_usuario == nombre_usuario).first()
-    else:
-        return None
+def authenticate_user(db: Session, nombre_usuario: str, contrasena: str):  # Reordenado para coincidir con el llamado
+    usuario = db.query(models.usersModels.Usuario).filter(
+        models.usersModels.Usuario.nombre_usuario == nombre_usuario
+    ).first()
 
     if not usuario or not verify_contrasena(contrasena, usuario.contrasena):
         return None
