@@ -19,7 +19,7 @@ class UsuarioUpdate(BaseModel):
     estatus: Optional[str] = None
     rol_id: Optional[int] = None
 
-class UsuarioRead(UsuarioBase):
+class Usuario(UsuarioBase):
     id: int
     persona_id: int
     correo_electronico: EmailStr
@@ -27,4 +27,4 @@ class UsuarioRead(UsuarioBase):
     fecha_actualizacion: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True

@@ -29,10 +29,10 @@ class PersonaUpdate(BaseModel):
     tipo_sangre: Optional[str] = None
     estatus: Optional[str] = None
 
-class PersonaRead(PersonaBase):
+class Persona(PersonaBase):
     id: int
     fecha_registro: datetime
     fecha_actualizacion: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
