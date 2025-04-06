@@ -56,12 +56,5 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         print("Usuario no encontrado en la base de datos.")  # Depuración
         raise credentials_exception
 
-    # Validar que el usuario tiene un rol asignado
-    if not hasattr(user, "rol") or user.rol is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="El usuario no tiene un rol asignado"
-        )
-
-    print(f"Usuario obtenido: {user}, Rol: {user.rol}")  # Depuración
+    print(f"Usuario obtenido: {user}")  # Depuración
     return user

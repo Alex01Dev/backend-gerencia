@@ -110,7 +110,6 @@ async def get_usuario_con_datos_persona(nombre_usuario: str, db: Session = Depen
             "id": usuario.id,
             "nombre_usuario": usuario.nombre_usuario,
             "correo": usuario.correo_electronico,
-            "persona_id": usuario.persona_id,
             "fecha_registro": usuario.fecha_registro,
             "Rol":"Gerente"
             # Otros campos...
@@ -118,10 +117,10 @@ async def get_usuario_con_datos_persona(nombre_usuario: str, db: Session = Depen
         "persona": {
             "id": persona.id,
             "nombre": persona.nombre,
-            "apellido": persona.primer_apellido,
+            "primer_apellido": persona.primer_apellido,
             "segundo_apellido": persona.segundo_apellido,
             "fecha_nacimiento": persona.fecha_nacimiento,
-            "telefono": persona.numero_telefonico,  
+            "numero_telefonico": persona.numero_telefonico,  
             # Otros campos...
         }
     }

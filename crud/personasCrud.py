@@ -125,7 +125,6 @@ def create_persona(db: Session, persona: schemas.personaSchemas.PersonaCreate):
 
 
 
-# Actualizar una persona existente
 def update_persona(db: Session, id: int, persona_data: schemas.personaSchemas.PersonaUpdate):
     db_persona = db.query(models.personasModels.Persona).filter(models.personasModels.Persona.id == id).first()
     if db_persona is None:
@@ -136,18 +135,15 @@ def update_persona(db: Session, id: int, persona_data: schemas.personaSchemas.Pe
         fotografia_path = save_image(persona_data.fotografia)
         db_persona.fotografia = fotografia_path
 
-    db_persona.titulo_cortesia = persona_data.titulo_cortesia
-    db_persona.nombre = persona_data.nombre
-    db_persona.primer_apellido = persona_data.primer_apellido
-    db_persona.segundo_apellido = persona_data.segundo_apellido
-    db_persona.fecha_nacimiento = persona_data.fecha_nacimiento
-    db_persona.genero = persona_data.genero
-    db_persona.tipo_sangre = persona_data.tipo_sangre
-    db_persona.estatus = persona_data.estatus
-    
+    # Actualizar solo los campos que no sean None
+    update_data = persona_data.dict(exclude_unset=True, exclude={"fotografia"})
+    for field, value in update_data.items():
+        setattr(db_persona, field, value)
+
     db.commit()
     db.refresh(db_persona)
     return db_persona
+
 
 # Eliminar una persona
 def delete_persona(db: Session, id: int):
