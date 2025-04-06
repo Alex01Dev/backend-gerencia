@@ -5,7 +5,9 @@ from datetime import timedelta
 from config.db import get_db
 from models.usuarioRolesModels import UsuarioRol 
 from models.usersModels import Usuario
+from models.personasModels import Persona
 from schemas.userSchemas import UsuarioLogin, Usuario, UsuarioCreate, UsuarioUpdate
+from crud.usersCrud import get_user_by_nombre_usuario
 from config.jwt import create_access_token, get_current_user
 from crud.usersCrud import (
     authenticate_user,
@@ -35,6 +37,7 @@ async def login(user_data: UsuarioLogin, db: Session = Depends(get_db)):
     
     # Verificar el rol del usuario
     esGerente = False
+    usuarioLogueado = user.nombre_usuario
     usuario_rol = db.query(UsuarioRol).filter(UsuarioRol.Usuario_ID == user.id).first()
     
     if usuario_rol and usuario_rol.Rol_ID == 1:  # 1 = Rol de gerente
@@ -58,7 +61,8 @@ async def login(user_data: UsuarioLogin, db: Session = Depends(get_db)):
     return {
         "access_token": access_token, 
         "token_type": "bearer",
-        "esGerente": esGerente  # También devolverlo en la respuesta directa
+        "esGerente": esGerente,
+        "usuarioLogueado": usuarioLogueado    # También devolverlo en la respuesta directa
     }
 
 @user.post("/register", response_model=Usuario, tags=["Usuarios"])
@@ -86,9 +90,40 @@ async def read_user(id: int, db: Session = Depends(get_db), current_user: Usuari
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return db_user
 
-@user.get("/me", response_model=Usuario, tags=["Usuarios"])
-async def get_current_user_data(current_user: Usuario = Depends(get_current_user)):
+@user.get("/usuario/{nombre_usuario}", tags=["Usuarios"])
+async def get_usuario_con_datos_persona(nombre_usuario: str, db: Session = Depends(get_db)):
     """
-    Obtiene los datos del usuario autenticado.
+    Obtiene los datos completos del usuario y su información asociada en la tabla persona.
     """
-    return current_user
+    usuario = get_user_by_nombre_usuario(db, nombre_usuario)
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Obtener los datos de la persona asociados
+    persona = db.query(Persona).filter(Persona.id == usuario.persona_id).first()
+    if not persona:
+        raise HTTPException(status_code=404, detail="Persona asociada no encontrada")
+
+    # Preparar el resultado combinado
+    resultado = {
+        "usuario": {
+            "id": usuario.id,
+            "nombre_usuario": usuario.nombre_usuario,
+            "correo": usuario.correo_electronico,
+            "persona_id": usuario.persona_id,
+            "fecha_registro": usuario.fecha_registro,
+            "Rol":"Gerente"
+            # Otros campos...
+        },
+        "persona": {
+            "id": persona.id,
+            "nombre": persona.nombre,
+            "apellido": persona.primer_apellido,
+            "segundo_apellido": persona.segundo_apellido,
+            "fecha_nacimiento": persona.fecha_nacimiento,
+            "telefono": persona.numero_telefonico,  
+            # Otros campos...
+        }
+    }
+
+    return resultado

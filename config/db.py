@@ -10,7 +10,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from passlib.context import CryptContext
 
-SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:12345@localhost:3306/pruebaGerencia"
+SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:1234@localhost:3307/gerencia_calirolex"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
