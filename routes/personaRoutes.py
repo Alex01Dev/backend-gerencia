@@ -31,7 +31,7 @@ def registrar_persona(persona_data: PersonaCreate, db: Session = Depends(get_db)
     return create_persona(db, persona_data)
 
 @persona.put("/{id}", response_model=PersonaUpdate)
-def actualizar_persona(id: int, persona: PersonaUpdate, db: Session = Depends(get_db)):
+def actualizar_persona(id: int, persona: PersonaUpdate, db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     db_persona = update_persona(db, id, persona)
     if db_persona is None:
         raise HTTPException(status_code=404, detail="Persona no encontrada")

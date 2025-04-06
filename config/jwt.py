@@ -51,7 +51,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         print(f"Error al decodificar el token: {e}")  # Depuración
         raise credentials_exception
 
-    user = get_user_by_nombre_usuario(db, username=username)
+    user = get_user_by_nombre_usuario(db, nombre_usuario=username)
     if user is None:
         print("Usuario no encontrado en la base de datos.")  # Depuración
         raise credentials_exception

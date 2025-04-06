@@ -23,7 +23,7 @@ def seed_usuarios_roles(target, connection, **kwargs):
         asignaciones = []
         
         for usuario in usuarios:
-            # El usuario "alina.bonilla" será Cliente
+            # El usuario "alex.marquez" será Cliente
             if usuario.nombre_usuario == "alex.marquez":
                 asignaciones.append({
                     "usuario": usuario,
