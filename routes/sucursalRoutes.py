@@ -1,67 +1,45 @@
-from typing import Optional, List
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime
+from typing import List
+
 import models.sucursalesModels
-from schemas.sucursalSchemas import SucursalCreate, SucursalUpdate 
+from config.db import get_db
+from schemas.sucursalSchemas import SucursalCreate, SucursalUpdate
+from schemas.sucursalSchemas import Sucursal as SucursalResponse
+import crud.sucursalesCrud as crud
+
+sucursal = APIRouter(prefix="/sucursales", tags=["Sucursales"])
 
 # Obtener todas las sucursales activas
-def get_sucursales(db: Session, skip: int = 0, limit: int = 10):
-    return (
-        db.query(models.sucursalesModels.Sucursal)
-        .filter(models.sucursalesModels.Sucursal.Estatus == "Activa")
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+@sucursal.get("/", response_model=List[SucursalResponse])
+def read_sucursales(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    return crud.get_sucursales(db, skip=skip, limit=limit)
 
 # Obtener una sucursal por ID
-def get_sucursal(db: Session, id: int):
-    return db.query(models.sucursalesModels.Sucursal).filter(models.sucursalesModels.Sucursal.Id == id).first()
+@sucursal.get("/{id}", response_model=SucursalResponse)
+def read_sucursal(id: int, db: Session = Depends(get_db)):
+    db_sucursal = crud.get_sucursal(db, id=id)
+    if not db_sucursal:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada")
+    return db_sucursal
 
 # Crear una nueva sucursal
-def create_sucursal(db: Session, sucursal: SucursalCreate):
-    db_sucursal = models.sucursalesModels.Sucursal(
-        Nombre=sucursal.Nombre,
-        Direccion=sucursal.Direccion,
-        Telefono=sucursal.Telefono,
-        Correo_Electronico=sucursal.Correo_Electronico,
-        Responsable_Id=sucursal.Responsable_Id,
-        Capacidad_Maxima=sucursal.Capacidad_Maxima,
-        Estatus=sucursal.Estatus,
-    )
-    db.add(db_sucursal)
-    db.commit()
-    db.refresh(db_sucursal)
-    return db_sucursal
+@sucursal.post("/", response_model=SucursalResponse, status_code=201)
+def create_sucursal(sucursal: SucursalCreate, db: Session = Depends(get_db)):
+    return crud.create_sucursal(db, sucursal)
 
 # Actualizar una sucursal existente
-def update_sucursal(db: Session, id: int, sucursal_data: SucursalUpdate):
-    db_sucursal = db.query(models.sucursalesModels.Sucursal).filter(models.sucursalesModels.Sucursal.Id == id).first()
-    if db_sucursal is None:
-        return None
-
-    db_sucursal.Nombre = sucursal_data.Nombre
-    db_sucursal.Direccion = sucursal_data.Direccion
-    db_sucursal.Telefono = sucursal_data.Telefono
-    db_sucursal.Correo_Electronico = sucursal_data.Correo_Electronico
-    db_sucursal.Responsable_Id = sucursal_data.Responsable_Id
-    db_sucursal.Capacidad_Maxima = sucursal_data.Capacidad_Maxima
-    db_sucursal.Estatus = sucursal_data.Estatus
-    db_sucursal.Fecha_Actualizacion = datetime.utcnow()
-
-    db.commit()
-    db.refresh(db_sucursal)
+@sucursal.put("/{id}", response_model=SucursalResponse)
+def update_sucursal(id: int, sucursal: SucursalUpdate, db: Session = Depends(get_db)):
+    db_sucursal = crud.update_sucursal(db, id, sucursal)
+    if not db_sucursal:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada")
     return db_sucursal
 
-# "Eliminar" una sucursal (cambio de Estatus a Inactiva)
-def delete_sucursal(db: Session, id: int):
-    db_sucursal = db.query(models.sucursalesModels.Sucursal).filter(models.sucursalesModels.Sucursal.Id == id).first()
-    if db_sucursal is None:
-        return None
-
-    db_sucursal.Estatus = "Inactiva"
-    db_sucursal.Fecha_Actualizacion = datetime.utcnow()
-
-    db.commit()
-    db.refresh(db_sucursal)
-    return {"message": "Sucursal marked as inactive"}
+# "Eliminar" una sucursal (soft delete)
+@sucursal.delete("/{id}")
+def delete_sucursal(id: int, db: Session = Depends(get_db)):
+    result = crud.delete_sucursal(db, id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada")
+    return result
