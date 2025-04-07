@@ -91,7 +91,7 @@ async def read_user(id: int, db: Session = Depends(get_db), current_user: Usuari
     return db_user
 
 @user.get("/usuario/{nombre_usuario}", tags=["Usuarios"])
-async def get_usuario_con_datos_persona(nombre_usuario: str, db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+async def get_usuario_con_datos_persona(nombre_usuario: str, db: Session = Depends(get_db)):
     """
     Obtiene los datos completos del usuario y su información asociada en la tabla persona.
     """

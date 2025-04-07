@@ -1,178 +1,67 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional, List
 from sqlalchemy.orm import Session
-from typing import List
 from datetime import datetime
-from config.jwt import get_current_user
-from config.db import get_db
-from schemas.sucursalSchemas import (
-    SucursalBase,
-    SucursalCreate,
-    SucursalEstadisticas,
-    SucursalUpdate,
-    SucursalResponse,
-    SucursalSimpleResponse,
-    SucursalInDB,
-    EstatusSucursal
-)
-from crud.sucursalesCrud import (
-    actualizar_sucursal,
-    crear_sucursal,
-    desactivar_sucursal,
-    obtener_sucursales,
-    obtener_sucursales_con_responsable
-)
+import models.sucursalesModels
+from schemas.sucursalSchemas import SucursalCreate, SucursalUpdate 
 
-sucursal = APIRouter(
-    prefix="/sucursales",
-    tags=["Sucursales"],
-    responses={404: {"description": "No encontrado"}},
-)
+# Obtener todas las sucursales activas
+def get_sucursales(db: Session, skip: int = 0, limit: int = 10):
+    return (
+        db.query(models.sucursalesModels.Sucursal)
+        .filter(models.sucursalesModels.Sucursal.Estatus == "Activa")
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
-@sucursal.post("/", response_model=SucursalResponse, status_code=status.HTTP_201_CREATED)
-def crear_sucursal(
-    sucursal: SucursalCreate,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Crear una nueva sucursal.
-    Requiere permisos de administrador o gerente.
-    """
-    # Verificar permisos del usuario actual
-    if current_user["rol"] not in ["Administrador", "Gerente"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para realizar esta acción"
-        )
-    
-    return crear_sucursal(db=db, sucursal=sucursal)
+# Obtener una sucursal por ID
+def get_sucursal(db: Session, id: int):
+    return db.query(models.sucursalesModels.Sucursal).filter(models.sucursalesModels.Sucursal.Id == id).first()
 
-@sucursal.get("/", response_model=List[SucursalResponse])
-def listar_sucursales(
-    skip: int = 0,
-    limit: int = 100,
-    activas: bool = None,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Obtener lista de sucursales con filtrado opcional por estatus.
-    Puede filtrar solo sucursales activas o inactivas con el parámetro 'activas'.
-    """
-    sucursales = obtener_sucursales_con_responsable(db, skip=skip, limit=limit)
-    
-    return [
-        {
-            "id": s.Sucursal.Id,
-            "nombre": s.Sucursal.Nombre,
-            "direccion": s.Sucursal.Direccion,
-            "responsable_id": s.Sucursal.Responsable_Id,
-            "capacidad_maxima": s.Sucursal.Capacidad_Maxima,
-            "detalles": s.Sucursal.Detalles,
-            "horario_disponibilidad": s.Sucursal.Horario_Disponibilidad,
-            "estatus": "Activa" if s.Sucursal.Estatus else "Inactiva",
-            "fecha_registro": s.Sucursal.Fecha_Registro,
-            "fecha_actualizacion": s.Sucursal.Fecha_Actualizacion,
-            "nombre_responsable": s.nombre_responsable,
-            "rol_responsable": s.rol_responsable
-        }
-        for s in sucursales
-        if activas is None or s.Sucursal.Estatus == activas
-    ]
-
-@sucursal.get("/{sucursal_id}", response_model=SucursalResponse)
-def obtener_sucursal(
-    sucursal_id: int,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Obtener los detalles de una sucursal específica por ID.
-    """
-    sucursal = obtener_sucursal(db, sucursal_id=sucursal_id)
-    if not sucursal:
-        raise HTTPException(status_code=404, detail="Sucursal no encontrada")
-    
-    # Obtener información del responsable
-    responsable = db.query(
-        gerentesModels.Nombre.label("nombre_responsable"),
-        gerentesModels.Gerente.Rol.label("rol_responsable")
-    ).filter(gerentesModels.Gerente.ID == sucursal.Responsable_Id).first()
-    
-    return {
-        "id": sucursal.Id,
-        "nombre": sucursal.Nombre,
-        "direccion": sucursal.Direccion,
-        "responsable_id": sucursal.Responsable_Id,
-        "capacidad_maxima": sucursal.Capacidad_Maxima,
-        "detalles": sucursal.Detalles,
-        "horario_disponibilidad": sucursal.Horario_Disponibilidad,
-        "estatus": "Activa" if sucursal.Estatus else "Inactiva",
-        "fecha_registro": sucursal.Fecha_Registro,
-        "fecha_actualizacion": sucursal.Fecha_Actualizacion,
-        "nombre_responsable": responsable.nombre_responsable if responsable else None,
-        "rol_responsable": responsable.rol_responsable if responsable else None
-    }
-
-@sucursal.put("/{sucursal_id}", response_model=SucursalResponse)
-def actualizar_sucursal(
-    sucursal_id: int,
-    sucursal: SucursalUpdate,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Actualizar información de una sucursal existente.
-    Requiere permisos de administrador o gerente.
-    """
-    if current_user["rol"] not in ["Administrador", "Gerente"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para realizar esta acción"
-        )
-    
-    return actualizar_sucursal(db=db, sucursal_id=sucursal_id, sucursal=sucursal)
-
-@sucursal.patch("/{sucursal_id}/desactivar", response_model=SucursalResponse)
-def desactivar_sucursal(
-    sucursal_id: int,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Desactivar una sucursal (cambiar estatus a Inactiva).
-    Requiere permisos de administrador o gerente.
-    """
-    if current_user["rol"] not in ["Administrador", "Gerente"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para realizar esta acción"
-        )
-    
-    return desactivar_sucursal(db=db, sucursal_id=sucursal_id)
-
-@sucursal.patch("/{sucursal_id}/activar", response_model=SucursalResponse)
-def activar_sucursal(
-    sucursal_id: int,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Activar una sucursal (cambiar estatus a Activa).
-    Requiere permisos de administrador o gerente.
-    """
-    if current_user["rol"] not in ["Administrador", "Gerente"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para realizar esta acción"
-        )
-    
-    db_sucursal = obtener_sucursal(db, sucursal_id)
-    if not db_sucursal:
-        raise HTTPException(status_code=404, detail="Sucursal no encontrada")
-    
-    db_sucursal.Estatus = True
-    db_sucursal.Fecha_Actualizacion = datetime.utcnow()
+# Crear una nueva sucursal
+def create_sucursal(db: Session, sucursal: SucursalCreate):
+    db_sucursal = models.sucursalesModels.Sucursal(
+        Nombre=sucursal.Nombre,
+        Direccion=sucursal.Direccion,
+        Telefono=sucursal.Telefono,
+        Correo_Electronico=sucursal.Correo_Electronico,
+        Responsable_Id=sucursal.Responsable_Id,
+        Capacidad_Maxima=sucursal.Capacidad_Maxima,
+        Estatus=sucursal.Estatus,
+    )
+    db.add(db_sucursal)
     db.commit()
     db.refresh(db_sucursal)
     return db_sucursal
+
+# Actualizar una sucursal existente
+def update_sucursal(db: Session, id: int, sucursal_data: SucursalUpdate):
+    db_sucursal = db.query(models.sucursalesModels.Sucursal).filter(models.sucursalesModels.Sucursal.Id == id).first()
+    if db_sucursal is None:
+        return None
+
+    db_sucursal.Nombre = sucursal_data.Nombre
+    db_sucursal.Direccion = sucursal_data.Direccion
+    db_sucursal.Telefono = sucursal_data.Telefono
+    db_sucursal.Correo_Electronico = sucursal_data.Correo_Electronico
+    db_sucursal.Responsable_Id = sucursal_data.Responsable_Id
+    db_sucursal.Capacidad_Maxima = sucursal_data.Capacidad_Maxima
+    db_sucursal.Estatus = sucursal_data.Estatus
+    db_sucursal.Fecha_Actualizacion = datetime.utcnow()
+
+    db.commit()
+    db.refresh(db_sucursal)
+    return db_sucursal
+
+# "Eliminar" una sucursal (cambio de Estatus a Inactiva)
+def delete_sucursal(db: Session, id: int):
+    db_sucursal = db.query(models.sucursalesModels.Sucursal).filter(models.sucursalesModels.Sucursal.Id == id).first()
+    if db_sucursal is None:
+        return None
+
+    db_sucursal.Estatus = "Inactiva"
+    db_sucursal.Fecha_Actualizacion = datetime.utcnow()
+
+    db.commit()
+    db.refresh(db_sucursal)
+    return {"message": "Sucursal marked as inactive"}
