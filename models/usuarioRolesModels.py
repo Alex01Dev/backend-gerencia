@@ -28,6 +28,7 @@ class UsuarioRol(Base):
     # Relaciones
     usuario = relationship("Usuario")
     rol = relationship("Rol")
+    sucursal = relationship("Sucursal", back_populates="responsable", uselist=False)
 
     def __repr__(self):
         return f"<UsuarioRol(Usuario_ID={self.Usuario_ID}, Rol_ID={self.Rol_ID}, Estatus={self.Estatus})>"

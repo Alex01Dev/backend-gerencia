@@ -4,6 +4,8 @@ from datetime import datetime
 from enum import Enum
 
 
+
+
 class EstatusSucursal(str, Enum):
     ACTIVA = "Activa"
     INACTIVA = "Inactiva"
@@ -32,3 +34,8 @@ class Sucursal(SucursalBase):
     class Config:
         from_attributes = True
 
+class SucursalResponseGerente(Sucursal):
+    Responsable_Nombre: Optional[str]  
+
+    class Config:
+        from_attributes = True

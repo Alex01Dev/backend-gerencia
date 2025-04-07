@@ -6,14 +6,14 @@ import models.sucursalesModels
 from config.db import get_db
 from schemas.sucursalSchemas import SucursalCreate, SucursalUpdate
 from schemas.sucursalSchemas import Sucursal as SucursalResponse
+from schemas.sucursalSchemas import SucursalResponseGerente
 import crud.sucursalesCrud as crud
 
 sucursal = APIRouter(prefix="/sucursales", tags=["Sucursales"])
 
-# Obtener todas las sucursales activas
-@sucursal.get("/", response_model=List[SucursalResponse])
+@sucursal.get("/", response_model=List[SucursalResponseGerente])
 def read_sucursales(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    return crud.get_sucursales(db, skip=skip, limit=limit)
+    return crud.get_sucursales(db, skip, limit)
 
 # Obtener una sucursal por ID
 @sucursal.get("/{id}", response_model=SucursalResponse)

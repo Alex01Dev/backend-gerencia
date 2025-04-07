@@ -1,19 +1,42 @@
 from typing import Optional, List
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from datetime import datetime
 import models.sucursalesModels
-from schemas.sucursalSchemas import SucursalCreate, SucursalUpdate 
+from schemas.sucursalSchemas import SucursalCreate, SucursalUpdate, Sucursal, SucursalResponseGerente  
+from models.sucursalesModels import Sucursal
+from models.usuarioRolesModels import UsuarioRol
 
-# Obtener todas las sucursales activas
-def get_sucursales(db: Session, skip: int = 0, limit: int = 10):
-    return (
-        db.query(models.sucursalesModels.Sucursal)
-        .filter(models.sucursalesModels.Sucursal.Estatus == "Activa")
+def get_sucursales(db: Session, skip: int = 0, limit: int = 10) -> List[SucursalResponseGerente]:
+    sucursales = (
+        db.query(Sucursal)
+        .options(joinedload(Sucursal.responsable).joinedload(UsuarioRol.usuario)) 
         .offset(skip)
         .limit(limit)
         .all()
     )
 
+    result = []
+    for sucursal in sucursales:
+        responsable_nombre = (
+            sucursal.responsable.usuario.nombre_usuario
+            if sucursal.responsable and sucursal.responsable.usuario else None
+        )
+        result.append(SucursalResponseGerente(
+            id=sucursal.id,
+            Nombre=sucursal.Nombre,
+            Direccion=sucursal.Direccion,
+            Telefono=sucursal.Telefono,
+            Correo_Electronico=sucursal.Correo_Electronico,
+            Responsable_Id=sucursal.Responsable_Id,
+            Capacidad_Maxima=sucursal.Capacidad_Maxima,
+            Estatus=sucursal.Estatus,
+            Fecha_Registro=sucursal.Fecha_Registro,
+            Fecha_Actualizacion=sucursal.Fecha_Actualizacion,
+            Responsable_Nombre=responsable_nombre
+        ))
+
+    return result
+    
 # Obtener una sucursal por ID
 def get_sucursal(db: Session, id: int):
     return db.query(models.sucursalesModels.Sucursal).filter(models.sucursalesModels.Sucursal.id == id).first()

@@ -35,6 +35,8 @@ class Sucursal(Base):
     Fecha_Actualizacion = Column(DateTime, nullable=True,
                                comment="Última fecha y hora en que se modificó la información.")
 
+    responsable = relationship("UsuarioRol", back_populates="sucursal", uselist=False)
+
     def __repr__(self):
         return f"<Sucursal(Id={self.Id}, Nombre='{self.Nombre}', Estatus={self.Estatus})>"
 
