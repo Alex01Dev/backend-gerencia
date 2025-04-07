@@ -3,7 +3,7 @@ from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials  # Importa HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from crud.usersCrud import get_user_by_username
+from crud.usersCrud import get_user_by_nombre_usuario
 from config.db import get_db
 from typing import Optional
 
@@ -35,17 +35,26 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     )
     try:
         token = credentials.credentials
-        print(f"Token recibido: {token}")  # Depuración: Imprime el token
+        print(f"Token recibido: {token}")  # Depuración
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(f"Payload decodificado: {payload}")  # Depuración: Imprime el payload
+        print(f"Payload decodificado: {payload}")  # Depuración
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-    except JWTError as e:
-        print(f"Error al decodificar el token: {e}")  # Depuración: Imprime el error
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="El token ha expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except jwt.JWTError as e:
+        print(f"Error al decodificar el token: {e}")  # Depuración
         raise credentials_exception
 
-    user = get_user_by_username(db, username=username)
+    user = get_user_by_nombre_usuario(db, nombre_usuario=username)
     if user is None:
+        print("Usuario no encontrado en la base de datos.")  # Depuración
         raise credentials_exception
+
+    print(f"Usuario obtenido: {user}")  # Depuración
     return user

@@ -23,8 +23,8 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-def authenticate_user(db: Session, identifier: str, password: str):
-    user = crud.usersCrud.get_user_by_identifier(db, identifier)
+def authenticate_user(db: Session, nombre_usuario: str, password: str):
+    user = crud.usersCrud.get_user_by_nombre_usuario(db, nombre_usuario)
     if not user:
         return False
     if not verify_password(password, user.contrasena):

@@ -1,80 +1,90 @@
-from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
+from typing import Optional, List
+from sqlalchemy.orm import Session, joinedload
 from datetime import datetime
 import models.sucursalesModels
-import schemas.sucursalSchemas
+from schemas.sucursalSchemas import SucursalCreate, SucursalUpdate, Sucursal, SucursalResponseGerente  
+from models.sucursalesModels import Sucursal
+from models.usuarioRolesModels import UsuarioRol
 
-def obtener_sucursal(db: Session, sucursal_id: int):
-    return db.query(models.Sucursal).filter(models.Sucursal.Id == sucursal_id).first()
+def get_sucursales(db: Session, skip: int = 0, limit: int = 10) -> List[SucursalResponseGerente]:
+    sucursales = (
+        db.query(Sucursal)
+        .options(joinedload(Sucursal.responsable).joinedload(UsuarioRol.usuario)) 
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
-def obtener_sucursales(db: Session, skip: int = 0, limit: int = 100, activas: bool = None):
-    query = db.query(models.Sucursal)
+    result = []
+    for sucursal in sucursales:
+        responsable_nombre = (
+            sucursal.responsable.usuario.nombre_usuario
+            if sucursal.responsable and sucursal.responsable.usuario else None
+        )
+        result.append(SucursalResponseGerente(
+            id=sucursal.id,
+            Nombre=sucursal.Nombre,
+            Direccion=sucursal.Direccion,
+            Telefono=sucursal.Telefono,
+            Correo_Electronico=sucursal.Correo_Electronico,
+            Responsable_Id=sucursal.Responsable_Id,
+            Capacidad_Maxima=sucursal.Capacidad_Maxima,
+            Estatus=sucursal.Estatus,
+            Fecha_Registro=sucursal.Fecha_Registro,
+            Fecha_Actualizacion=sucursal.Fecha_Actualizacion,
+            Responsable_Nombre=responsable_nombre
+        ))
+
+    return result
     
-    if activas is not None:
-        query = query.filter(models.Sucursal.Estatus == activas)
-        
-    return query.offset(skip).limit(limit).all()
+# Obtener una sucursal por ID
+def get_sucursal(db: Session, id: int):
+    return db.query(models.sucursalesModels.Sucursal).filter(models.sucursalesModels.Sucursal.id == id).first()
 
-def crear_sucursal(db: Session, sucursal: schemas.sucursalSchemas.SucursalCreate):
-    db_sucursal = models.Sucursal(
-        Nombre=sucursal.nombre,
-        Direccion=sucursal.direccion,
-        Responsable_Id=sucursal.responsable_id,
-        Capacidad_Maxima=sucursal.capacidad_maxima,
-        Detalles=sucursal.detalles,
-        Horario_Disponibilidad=sucursal.horario_disponibilidad,
-        Estatus=True,  # Por defecto activa
-        Fecha_Registro=datetime.utcnow()
+# Crear una nueva sucursal
+def create_sucursal(db: Session, sucursal: SucursalCreate):
+    db_sucursal = models.sucursalesModels.Sucursal(
+        Nombre=sucursal.Nombre,
+        Direccion=sucursal.Direccion,
+        Telefono=sucursal.Telefono,
+        Correo_Electronico=sucursal.Correo_Electronico,
+        Responsable_Id=sucursal.Responsable_Id,
+        Capacidad_Maxima=sucursal.Capacidad_Maxima,
+        Estatus=sucursal.Estatus,
     )
     db.add(db_sucursal)
     db.commit()
     db.refresh(db_sucursal)
     return db_sucursal
 
-def actualizar_sucursal(db: Session, sucursal_id: int, sucursal: schemas.sucursalSchemas.SucursalUpdate):
-    db_sucursal = obtener_sucursal(db, sucursal_id)
-    if not db_sucursal:
-        raise HTTPException(status_code=404, detail="Sucursal no encontrada")
-    
-    update_data = sucursal.dict(exclude_unset=True)
-    
-    for key, value in update_data.items():
-        # Mapear nombres snake_case a CamelCase para el modelo
-        db_key = {
-            'nombre': 'Nombre',
-            'direccion': 'Direccion',
-            'responsable_id': 'Responsable_Id',
-            'capacidad_maxima': 'Capacidad_Maxima',
-            'detalles': 'Detalles',
-            'horario_disponibilidad': 'Horario_Disponibilidad',
-            'estatus': 'Estatus'
-        }.get(key, key)
-        
-        if hasattr(db_sucursal, db_key):
-            setattr(db_sucursal, db_key, value)
-    
+# Actualizar una sucursal existente
+def update_sucursal(db: Session, id: int, sucursal_data: SucursalUpdate):
+    db_sucursal = db.query(models.sucursalesModels.Sucursal).filter(models.sucursalesModels.Sucursal.id == id).first()
+    if db_sucursal is None:
+        return None
+
+    db_sucursal.Nombre = sucursal_data.Nombre
+    db_sucursal.Direccion = sucursal_data.Direccion
+    db_sucursal.Telefono = sucursal_data.Telefono
+    db_sucursal.Correo_Electronico = sucursal_data.Correo_Electronico
+    db_sucursal.Responsable_Id = sucursal_data.Responsable_Id
+    db_sucursal.Capacidad_Maxima = sucursal_data.Capacidad_Maxima
+    db_sucursal.Estatus = sucursal_data.Estatus
     db_sucursal.Fecha_Actualizacion = datetime.utcnow()
+
     db.commit()
     db.refresh(db_sucursal)
     return db_sucursal
 
-def desactivar_sucursal(db: Session, sucursal_id: int):
-    db_sucursal = obtener_sucursal(db, sucursal_id)
-    if not db_sucursal:
-        raise HTTPException(status_code=404, detail="Sucursal no encontrada")
-    
-    db_sucursal.Estatus = False
+# "Eliminar" una sucursal (cambio de Estatus a Inactiva)
+def delete_sucursal(db: Session, id: int):
+    db_sucursal = db.query(models.sucursalesModels.Sucursal).filter(models.sucursalesModels.Sucursal.id == id).first()
+    if db_sucursal is None:
+        return None
+
+    db_sucursal.Estatus = "Inactiva"
     db_sucursal.Fecha_Actualizacion = datetime.utcnow()
+
     db.commit()
     db.refresh(db_sucursal)
-    return db_sucursal
-
-def obtener_sucursales_con_responsable(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(
-        models.Sucursal,
-        models.Gerente.Nombre.label("nombre_responsable"),
-        models.Gerente.Rol.label("rol_responsable")
-    ).join(
-        models.Gerente, 
-        models.Sucursal.Responsable_Id == models.Gerente.ID
-    ).offset(skip).limit(limit).all()
+    return {"message": "Sucursal marked as inactive"}

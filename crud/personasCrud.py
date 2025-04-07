@@ -3,11 +3,16 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, UploadFile
 import models.personasModels
 import models.usersModels
+import models.usuarioRolesModels
+from models.usuarioRolesModels import UsuarioRol
+import models.rolesModels
+from models.rolesModels import Rol
 import schemas.personaSchemas
 from sqlalchemy.exc import SQLAlchemyError
 import os
 import uuid
 from sqlalchemy import func
+from datetime import datetime
 
 def save_image(image: UploadFile) -> Optional[str]:
     if not image:
@@ -45,9 +50,9 @@ def generar_nombre_usuario(nombre: str, primer_apellido: str, segundo_apellido: 
             )
     return nombre_usuario
 
+
 def create_persona(db: Session, persona: schemas.personaSchemas.PersonaCreate):
     try:
-        # Generar nombre de usuario primero (fuera de transacción)
         nombre_usuario = generar_nombre_usuario(
             persona.nombre,
             persona.primer_apellido,
@@ -55,23 +60,14 @@ def create_persona(db: Session, persona: schemas.personaSchemas.PersonaCreate):
             db
         )
 
-        # Determinar el rol
-        correo_electronico = persona.correo_electronico.lower()
-        rol = 'Administrador' if 'gymbullsge' in correo_electronico else \
-              'Colaborador' if 'gymbullco' in correo_electronico else 'Cliente'
-
-        # Guardar la imagen (fuera de transacción)
         fotografia_path = save_image(persona.fotografia)
 
-        # Crear persona
         db_persona = models.personasModels.Persona(
             titulo_cortesia=persona.titulo_cortesia,
             nombre=persona.nombre,
             primer_apellido=persona.primer_apellido,
             segundo_apellido=persona.segundo_apellido,
             numero_telefonico=persona.numero_telefonico,
-            correo_electronico=persona.correo_electronico,
-            contrasena=persona.contrasena,
             fecha_nacimiento=persona.fecha_nacimiento,
             fotografia=fotografia_path,
             genero=persona.genero,
@@ -79,26 +75,33 @@ def create_persona(db: Session, persona: schemas.personaSchemas.PersonaCreate):
             estatus=persona.estatus,
         )
         db.add(db_persona)
-        db.flush()  # Obtener ID sin commit
+        db.flush()  # para obtener el ID
 
-        # Crear usuario asociado
         db_usuario = models.usersModels.User(
-            nombre=persona.nombre,
-            primer_apellido=persona.primer_apellido,
-            segundo_apellido=persona.segundo_apellido,
+            persona_id=db_persona.id,
             nombre_usuario=nombre_usuario,
             correo_electronico=persona.correo_electronico,
-            numero_telefonico=persona.numero_telefonico,
-            rol=rol,
             contrasena=persona.contrasena,
-            persona_id=db_persona.id
+            estatus=persona.estatus,
         )
         db.add(db_usuario)
+        db.flush()  # para obtener el ID del usuario
 
-        # Commit explícito
+        # Obtener el ID del rol "Cliente"
+        rol_cliente = db.query(Rol).filter(Rol.Nombre == "Cliente").first()
+        if not rol_cliente:
+            raise HTTPException(status_code=400, detail="Rol 'Cliente' no encontrado.")
+
+        # Insertar en tbd_usuarios_roles
+        usuario_rol = UsuarioRol(
+            Usuario_ID=db_usuario.id,
+            Rol_ID=rol_cliente.ID,
+            Estatus=True,
+            Fecha_Registro=datetime.utcnow()
+        )
+        db.add(usuario_rol)
+
         db.commit()
-
-        # Refrescar objetos
         db.refresh(db_persona)
         db.refresh(db_usuario)
 
@@ -108,7 +111,7 @@ def create_persona(db: Session, persona: schemas.personaSchemas.PersonaCreate):
                 "nombre": db_persona.nombre,
                 "primer_apellido": db_persona.primer_apellido,
                 "segundo_apellido": db_persona.segundo_apellido,
-                "correo_electronico": db_persona.correo_electronico,
+                "correo_electronico": db_usuario.correo_electronico,
             },
             "nombre_usuario": db_usuario.nombre_usuario
         }
@@ -121,7 +124,7 @@ def create_persona(db: Session, persona: schemas.personaSchemas.PersonaCreate):
         ) from e
 
 
-# Actualizar una persona existente
+
 def update_persona(db: Session, id: int, persona_data: schemas.personaSchemas.PersonaUpdate):
     db_persona = db.query(models.personasModels.Persona).filter(models.personasModels.Persona.id == id).first()
     if db_persona is None:
@@ -132,18 +135,15 @@ def update_persona(db: Session, id: int, persona_data: schemas.personaSchemas.Pe
         fotografia_path = save_image(persona_data.fotografia)
         db_persona.fotografia = fotografia_path
 
-    db_persona.titulo_cortesia = persona_data.titulo_cortesia
-    db_persona.nombre = persona_data.nombre
-    db_persona.primer_apellido = persona_data.primer_apellido
-    db_persona.segundo_apellido = persona_data.segundo_apellido
-    db_persona.fecha_nacimiento = persona_data.fecha_nacimiento
-    db_persona.genero = persona_data.genero
-    db_persona.tipo_sangre = persona_data.tipo_sangre
-    db_persona.estatus = persona_data.estatus
-    
+    # Actualizar solo los campos que no sean None
+    update_data = persona_data.dict(exclude_unset=True, exclude={"fotografia"})
+    for field, value in update_data.items():
+        setattr(db_persona, field, value)
+
     db.commit()
     db.refresh(db_persona)
     return db_persona
+
 
 # Eliminar una persona
 def delete_persona(db: Session, id: int):

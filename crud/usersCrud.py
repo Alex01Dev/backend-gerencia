@@ -8,53 +8,50 @@ import schemas.userSchemas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Función para verificar contraseñas
-def verify_password(plain_password: str, hashed_password: str):
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_contrasena(plain_contrasena: str, hashed_contrasena: str):
+    return pwd_context.verify(plain_contrasena, hashed_contrasena)
 
 # Función para autenticar usuarios
-def authenticate_user(db: Session, password: str, username: Optional[str] = None):
-    if username:
-        user = db.query(models.usersModels.User).filter(models.usersModels.User.nombre_usuario == username).first()
-    else:
-        return None
+def authenticate_user(db: Session, nombre_usuario: str, contrasena: str):  # Reordenado para coincidir con el llamado
+    usuario = db.query(models.usersModels.Usuario).filter(
+        models.usersModels.Usuario.nombre_usuario == nombre_usuario
+    ).first()
 
-    if not user or not verify_password(password, user.contrasena):
+    if not usuario or not verify_contrasena(contrasena, usuario.contrasena):
         return None
-    return user
+    return usuario
 
 # Obtener un usuario por nombre de usuario o correo electrónico
-def get_user_by_username_or_email(db: Session, nombre_usuario: Optional[str] = None, correo_electronico: Optional[str] = None):
-    query = db.query(models.usersModels.User)
+def get_user_by_nombre_usuario_or_email(db: Session, nombre_usuario: Optional[str] = None, correo_electronico: Optional[str] = None):
+    query = db.query(models.usersModels.Usuario)
     
     if nombre_usuario:
-        query = query.filter(models.usersModels.User.nombre_usuario == nombre_usuario)
+        query = query.filter(models.usersModels.Usuario.nombre_usuario == nombre_usuario)
     if correo_electronico:
-        query = query.filter(models.usersModels.User.correo_electronico == correo_electronico)
+        query = query.filter(models.usersModels.Usuario.correo_electronico == correo_electronico)
     
     return query.first()  # Retorna el primer usuario que coincida
 
 
 # Función para obtener un usuario por nombre de usuario
-def get_user_by_username(db: Session, username: str):
-    return db.query(models.usersModels.User).filter(models.usersModels.User.nombre_usuario == username).first()
+def get_user_by_nombre_usuario(db: Session, nombre_usuario: str):
+    return db.query(models.usersModels.Usuario).filter(models.usersModels.Usuario.nombre_usuario == nombre_usuario).first()
 
 # Obtener todos los usuarios
 def get_users(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(models.usersModels.User).offset(skip).limit(limit).all()
+    return db.query(models.usersModels.Usuario).offset(skip).limit(limit).all()
 
 # Obtener un usuario por ID
 def get_user(db: Session, id: int):
-    return db.query(models.usersModels.User).filter(models.usersModels.User.id == id).first()
+    return db.query(models.usersModels.Usuario).filter(models.usersModels.Usuario.id == id).first()
 
 # Crear un nuevo usuario
-def create_user(db: Session, user: schemas.userSchemas.UserCreate):
-    hashed_password = pwd_context.hash(user.contrasena)
-    db_user = models.usersModels.User(
-        nombre=user.nombre,
+def create_user(db: Session, user: schemas.userSchemas.UsuarioCreate):
+    hashed_contrasena = pwd_context.hash(user.contrasena)
+    db_user = models.usersModels.Usuario(
         nombre_usuario=user.nombre_usuario,
         correo_electronico=user.correo_electronico,
-        contrasena=hashed_password,
-        numero_telefonico=user.numero_telefonico,
+        contrasena=hashed_contrasena,
         estatus=user.estatus,
     )
     db.add(db_user)
