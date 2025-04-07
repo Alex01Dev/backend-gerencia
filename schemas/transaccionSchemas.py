@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 
 class TipoTransaccion(str, Enum):
@@ -10,17 +10,20 @@ class TipoTransaccion(str, Enum):
 class MetodoPago(str, Enum):
     TARJETA_DEBITO = "TarjetaDebito"
     TARJETA_CREDITO = "TarjetaCredito"
+    EFECTIVO = "Efectivo"
+    TRANSFERENCIA = "Transferencia"
 
 class EstatusTransaccion(str, Enum):
     PROCESANDO = "Procesando"
     PAGADA = "Pagada"
     CANCELADA = "Cancelada"
+    RECHAZADA = "Rechazada"
 
 class TransaccionBase(BaseModel):
-    detalles: str
+    detalles: str = Field(..., max_length=255, description="Detalles de la transacción")
     tipo_transaccion: TipoTransaccion
     metodo_pago: MetodoPago
-    monto: float
+    monto: float = Field(..., gt=0, description="Monto de la transacción, debe ser mayor a 0")
     estatus: Optional[EstatusTransaccion] = EstatusTransaccion.PROCESANDO
     usuario_id: int
 
@@ -28,10 +31,10 @@ class TransaccionCreate(TransaccionBase):
     pass
 
 class TransaccionUpdate(BaseModel):
-    detalles: Optional[str] = None
+    detalles: Optional[str] = Field(None, max_length=255)
     tipo_transaccion: Optional[TipoTransaccion] = None
     metodo_pago: Optional[MetodoPago] = None
-    monto: Optional[float] = None
+    monto: Optional[float] = Field(None, gt=0)
     estatus: Optional[EstatusTransaccion] = None
 
 class TransaccionResponse(BaseModel):

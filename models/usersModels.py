@@ -23,6 +23,7 @@ class Usuario(Base):
     # Relación con Persona
     persona = relationship("Persona", back_populates="usuario")
 
+    roles = relationship("UsuarioRol", back_populates="usuario")
      # Relación con Transacciones
     transacciones = relationship("Transaccion", back_populates="usuario")
     def __repr__(self):
