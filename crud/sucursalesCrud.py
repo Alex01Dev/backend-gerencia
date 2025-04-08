@@ -9,7 +9,8 @@ from models.usuarioRolesModels import UsuarioRol
 def get_sucursales(db: Session, skip: int = 0, limit: int = 10) -> List[SucursalResponseGerente]:
     sucursales = (
         db.query(Sucursal)
-        .options(joinedload(Sucursal.responsable).joinedload(UsuarioRol.usuario)) 
+        .options(joinedload(Sucursal.responsable).joinedload(UsuarioRol.usuario))
+        .filter(Sucursal.Estatus == "Activa")  
         .offset(skip)
         .limit(limit)
         .all()
@@ -36,6 +37,7 @@ def get_sucursales(db: Session, skip: int = 0, limit: int = 10) -> List[Sucursal
         ))
 
     return result
+
     
 # Obtener una sucursal por ID
 def get_sucursal(db: Session, id: int):
