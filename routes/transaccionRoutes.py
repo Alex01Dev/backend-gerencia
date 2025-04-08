@@ -3,7 +3,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import datetime
 from typing import Optional, List
+from crud.transaccionsCrud import obtener_usuarios_por_transaccion  # en lugar de obtener_usuarios_por_rol
 from config.db import get_db
+from fastapi import WebSocket
+from asyncio import create_task
+from fastapi.encoders import jsonable_encoder
+from webSocket.websocket import manager
 from schemas.transaccionSchemas import (
     TransaccionCreate,
     TransaccionUpdate,
@@ -23,6 +28,15 @@ from crud.transaccionsCrud import (
 
 # Inicializamos el enrutador de transacciones
 transaccion = APIRouter()
+
+@transaccion.websocket("/ws/transacciones")
+async def websocket_transacciones(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except Exception:
+        manager.disconnect(websocket)
 
 @transaccion.get("/transacciones/estadisticas", response_model=TransaccionEstadisticas, tags=["Transacciones"])
 def get_estadisticas_transacciones(
@@ -68,22 +82,25 @@ def generar_transacciones_masivas(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@transaccion.get("/usuarios-por-transaccion", tags=["Transacciones"])
-def obtener_usuarios_por_transaccion(
-    tipo_transaccion: TipoTransaccion,
-    rol: str,
+@transaccion.get("/obtener-usuarios-por-transaccion", tags=["Transacciones"])
+def obtener_usuarios_por_transaccion_route(
+    tipo_transaccion: str = Query(...),
+    rol: str = Query(...),
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Obtiene usuarios según el tipo de transacción y rol.
-    """
-    usuarios = obtener_usuarios_por_rol(db, rol)
-    
+    tipo_transaccion = tipo_transaccion.capitalize()
+
+    if tipo_transaccion not in [t.value for t in TipoTransaccion]:
+        raise HTTPException(status_code=400, detail="Tipo de transacción no válido")
+
+    usuarios = obtener_usuarios_por_transaccion(db, tipo_transaccion, rol)
+
     if not usuarios:
-        raise HTTPException(status_code=404, detail="No se encontraron usuarios con ese rol.")
+        raise HTTPException(status_code=404, detail="No se encontraron usuarios con ese rol para la transacción.")
 
     return usuarios
+
 
 @transaccion.post("/register-tra/", response_model=TransaccionResponse, tags=["Transacciones"])
 def registrar_transaccion(
@@ -95,6 +112,14 @@ def registrar_transaccion(
     """
     try:
         nueva_transaccion = crear_transaccion(db, transaccion_data.model_dump())
+
+        # Enviar por WebSocket
+        import asyncio
+        asyncio.create_task(manager.broadcast({
+            "action": "new_transaction",
+            "data": jsonable_encoder(nueva_transaccion)
+        }))
+
         return nueva_transaccion
     except Exception as e:
         raise HTTPException(
@@ -119,11 +144,10 @@ def listar_todas_transacciones(
     Obtiene todas las transacciones con opciones de filtrado y paginación.
     """
     try:
-        print(f"Parámetros recibidos: skip={skip}, limit={limit}, tipo_transaccion={tipo_transaccion}, metodo_pago={metodo_pago}, estatus={estatus}, usuario_id={usuario_id}, fecha_inicio={fecha_inicio}, fecha_fin={fecha_fin}")
+        print(f"Parámetros recibidos: skip={skip}, tipo_transaccion={tipo_transaccion}, metodo_pago={metodo_pago}, estatus={estatus}, usuario_id={usuario_id}, fecha_inicio={fecha_inicio}, fecha_fin={fecha_fin}")
         transacciones = obtener_todas_transacciones(
             db=db,
             skip=skip,
-            limit=limit,
             tipo_transaccion=tipo_transaccion,
             metodo_pago=metodo_pago,
             estatus=estatus,

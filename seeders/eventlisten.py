@@ -8,6 +8,7 @@ roles_iniciales = [
     {"Nombre": "Gerente", "Descripcion": "Responsable de la gestión general del sistema.", "Estatus": True},
     {"Nombre": "Cliente", "Descripcion": "Cliente del Gym que va a adquirir un producto o servicio.", "Estatus": True},
     {"Nombre": "Visitante", "Descripcion": "Usuario con acceso limitado para explorar el sistema.", "Estatus": True},
+    {"Nombre": "Colaborador", "Descripcion": "Persona que asiste en la operación y atención dentro del gimnasio.", "Estatus": True},
 ]
 
 # Función para insertar los datos iniciales
