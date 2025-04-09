@@ -58,3 +58,13 @@ def create_user(db: Session, user: schemas.userSchemas.UsuarioCreate):
     db.commit()
     db.refresh(db_user)
     return db_user
+
+    # Obtener todos los usuarios con rol "Gerente"
+def get_usuarios_gerentes(db: Session):
+    return (
+        db.query(models.usersModels.Usuario.id, models.usersModels.Usuario.nombre_usuario, models.usersModels.Usuario.estatus)
+        .join(models.usuarioRolesModels.UsuarioRol, models.usersModels.Usuario.id == models.usuarioRolesModels.UsuarioRol.Usuario_ID)
+        .join(models.rolesModels.Rol, models.usuarioRolesModels.UsuarioRol.Rol_ID == models.rolesModels.Rol.ID)
+        .filter(models.rolesModels.Rol.Nombre == "Gerente", models.usuarioRolesModels.UsuarioRol.Estatus == True)
+        .all()
+    )
