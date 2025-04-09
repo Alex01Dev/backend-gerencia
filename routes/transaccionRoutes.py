@@ -34,9 +34,10 @@ async def websocket_transacciones(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            await websocket.receive_text()
+            await websocket.receive_text()  # Se mantiene la conexión abierta esperando datos
     except Exception:
-        manager.disconnect(websocket)
+        manager.disconnect(websocket)  # Si algo sale mal, desconectamos al cliente
+
 
 @transaccion.get("/transacciones/estadisticas", response_model=TransaccionEstadisticas, tags=["Transacciones"])
 def get_estadisticas_transacciones(
@@ -113,7 +114,7 @@ def registrar_transaccion(
     try:
         nueva_transaccion = crear_transaccion(db, transaccion_data.model_dump())
 
-        # Enviar por WebSocket
+        # Emitir la nueva transacción por WebSocket
         import asyncio
         asyncio.create_task(manager.broadcast({
             "action": "new_transaction",
