@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -7,7 +8,10 @@ from crud.transaccionsCrud import obtener_usuarios_por_transaccion  # en lugar d
 from config.db import get_db
 from fastapi import WebSocket
 from asyncio import create_task
+from models.transaccionsModels import Transaccion
+from models.usuarioRolesModels import UsuarioRol
 from fastapi.encoders import jsonable_encoder
+from sqlalchemy.orm import joinedload
 from webSocket.websocket import manager
 from schemas.transaccionSchemas import (
     TransaccionCreate,
@@ -104,29 +108,61 @@ def obtener_usuarios_por_transaccion_route(
 
 
 @transaccion.post("/register-tra/", response_model=TransaccionResponse, tags=["Transacciones"])
-def registrar_transaccion(
+async def registrar_transaccion(
     transaccion_data: TransaccionCreate, 
     db: Session = Depends(get_db)
 ):
-    """
-    Registra una nueva transacción en el sistema.
-    """
     try:
+        # Crear la nueva transacción
         nueva_transaccion = crear_transaccion(db, transaccion_data.model_dump())
+        
+        # Verifica si la transacción fue creada correctamente
+        if not nueva_transaccion:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error al crear la transacción")
 
-        # Emitir la nueva transacción por WebSocket
-        import asyncio
-        asyncio.create_task(manager.broadcast({
-            "action": "new_transaction",
-            "data": jsonable_encoder(nueva_transaccion)
-        }))
+        # Obtener la transacción con sus datos asociados (usuario y rol)
+        transaccion_con_datos = db.query(Transaccion).options(
+        joinedload(Transaccion.usuario_rol).joinedload(UsuarioRol.usuario),
+        joinedload(Transaccion.usuario_rol).joinedload(UsuarioRol.rol)
+        ).filter(Transaccion.id == nueva_transaccion.id).one_or_none()
 
-        return nueva_transaccion
+        # Si no se encuentra la transacción, lanzar un error
+        if not transaccion_con_datos:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transacción no encontrada")
+
+        # Asignar 'nombre_usuario' y 'rol' de manera segura
+        usuario_rol = transaccion_con_datos.usuario_rol
+        nombre_usuario = usuario_rol.usuario.nombre_usuario if usuario_rol and usuario_rol.usuario else None
+        rol = usuario_rol.rol.Nombre if usuario_rol and usuario_rol.rol else None
+
+        # Crear el objeto TransaccionResponse directamente con los campos requeridos
+        transaccion_response = TransaccionResponse(
+            id=transaccion_con_datos.id,
+            detalles=transaccion_con_datos.detalles,
+            tipo_transaccion=transaccion_con_datos.tipo_transaccion,
+            metodo_pago=transaccion_con_datos.metodo_pago,
+            monto=transaccion_con_datos.monto,
+            estatus=transaccion_con_datos.estatus,
+            usuario_id=transaccion_con_datos.usuario_id,
+            fecha_registro=transaccion_con_datos.fecha_registro,
+            fecha_actualizacion=transaccion_con_datos.fecha_actualizacion,
+            nombre_usuario=nombre_usuario,
+            rol=rol
+        )
+
+        return transaccion_response
+
+    except HTTPException as e:
+        # Capturar y levantar errores específicos de HTTP
+        raise e
+
     except Exception as e:
+        # Mejorar la captura del error para ver más detalles
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al registrar transacción: {str(e)}"
         )
+
 
 @transaccion.get("/obtener-todo", response_model=List[TransaccionResponse], tags=["Transacciones"])
 def listar_todas_transacciones(

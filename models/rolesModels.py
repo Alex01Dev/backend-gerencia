@@ -25,10 +25,11 @@ class Rol(Base):
     Fecha_Registro = Column(DateTime, nullable=False, default=datetime.utcnow,
                             comment='Descripcion: Dato de Auditoria que documenta la fecha y hora de creacion del registro\nNaturaleza: Cuantitativo\nDominio: Fecha y hora válidas según el calendario')
     
+
     Fecha_Actualizacion = Column(DateTime, nullable=True,
                                  comment='Descripcion: Dato de Auditoria que documenta la fecha y hora de la ultima modificacion del registro\nNaturaleza: Cuantitativo\nDominio: Fecha y hora válidas según el calendario')
 
-    usuarios = relationship("UsuarioRol", back_populates="rol")
+    usuarios = relationship("UsuarioRol", back_populates="rol", overlaps="usuarios_con_rol")
 
     def __repr__(self):
         return f"<Rol(ID={self.ID}, Nombre='{self.Nombre}', Estatus={self.Estatus})>"

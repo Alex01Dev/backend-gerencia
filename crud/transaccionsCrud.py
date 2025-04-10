@@ -12,9 +12,9 @@ from models.usersModels import Usuario
 def obtener_usuarios_por_transaccion(db: Session, tipo_transaccion: str, rol: str):
     resultados = (
         db.query(
-            Usuario.id.label("usuario_id"),
+            UsuarioRol.Usuario_ID.label("usuario_rol_id"),
             Usuario.nombre_usuario,
-            Rol.Nombre.label("rol")
+            Rol.Nombre.label("rol") 
         )
         .join(UsuarioRol, Usuario.id == UsuarioRol.Usuario_ID)
         .join(Rol, UsuarioRol.Rol_ID == Rol.ID)
@@ -25,7 +25,7 @@ def obtener_usuarios_por_transaccion(db: Session, tipo_transaccion: str, rol: st
 
     return [
         {
-            "usuario_id": r.usuario_id,
+            "usuario_id": r.usuario_rol_id,
             "nombre_usuario": r.nombre_usuario,
             "rol": r.rol
         }
@@ -34,9 +34,6 @@ def obtener_usuarios_por_transaccion(db: Session, tipo_transaccion: str, rol: st
 
 # CREATE
 def crear_transaccion(db: Session, transaccion_data: dict) -> Transaccion:
-    """
-    Crea una nueva transacción en la base de datos.
-    """
     try:
         db_transaccion = Transaccion(
             usuario_id=transaccion_data["usuario_id"],
