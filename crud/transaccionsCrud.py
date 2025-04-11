@@ -9,11 +9,31 @@ from models.rolesModels import Rol  # Importa el modelo Rol
 from models.usuarioRolesModels import UsuarioRol  # Importa el modelo UsuarioRol
 from models.usersModels import Usuario
 
+def obtener_usuarios_por_transaccion(db: Session, tipo_transaccion: str, rol: str):
+    resultados = (
+        db.query(
+            UsuarioRol.Usuario_ID.label("usuario_rol_id"),
+            Usuario.nombre_usuario,
+            Rol.Nombre.label("rol") 
+        )
+        .join(UsuarioRol, Usuario.id == UsuarioRol.Usuario_ID)
+        .join(Rol, UsuarioRol.Rol_ID == Rol.ID)
+        .filter(Rol.Nombre == rol)
+        .filter(UsuarioRol.Estatus == True)
+        .all()
+    )
+
+    return [
+        {
+            "usuario_id": r.usuario_rol_id,
+            "nombre_usuario": r.nombre_usuario,
+            "rol": r.rol
+        }
+        for r in resultados
+    ]
+
 # CREATE
 def crear_transaccion(db: Session, transaccion_data: dict) -> Transaccion:
-    """
-    Crea una nueva transacción en la base de datos.
-    """
     try:
         db_transaccion = Transaccion(
             usuario_id=transaccion_data["usuario_id"],
@@ -44,7 +64,6 @@ def obtener_transaccion(db: Session, transaccion_id: int) -> Optional[Transaccio
 def obtener_todas_transacciones(
     db: Session,
     skip: int = 0,
-    limit: int = 100,
     tipo_transaccion: Optional[TipoTransaccion] = None,
     metodo_pago: Optional[MetodoPago] = None,
     estatus: Optional[EstatusTransaccion] = None,
@@ -81,7 +100,7 @@ def obtener_todas_transacciones(
             query = query.filter(Transaccion.metodo_pago == metodo_pago)
         if estatus:
             query = query.filter(Transaccion.estatus == estatus)
-        if usuario_id:
+        if usuario_id:      
             query = query.filter(Transaccion.usuario_id == usuario_id)
         if fecha_inicio:
             query = query.filter(Transaccion.fecha_registro >= fecha_inicio)
@@ -89,7 +108,7 @@ def obtener_todas_transacciones(
             query = query.filter(Transaccion.fecha_registro <= fecha_fin)
 
         # Ordenar y paginar
-        result = query.order_by(Transaccion.fecha_registro.desc()).offset(skip).limit(limit).all()
+        result = query.order_by(Transaccion.fecha_registro.desc()).offset(skip).all()
         return result
     except Exception as e:
         raise HTTPException(
@@ -97,11 +116,22 @@ def obtener_todas_transacciones(
             detail=f"Error al obtener transacciones: {str(e)}"
         )
 
-def obtener_usuarios_por_rol(db: Session, rol: str):
+def obtener_usuarios_por_rol(db: Session, tipo_transaccion: TipoTransaccion, rol: str):
     """
-    Obtiene usuarios por rol.
+    Obtiene usuarios de acuerdo al tipo de transacción y el rol.
     """
-    return db.query(Usuario).filter(Usuario.rol == rol).all()
+    try:
+        # Asegúrate de que tu base de datos tenga los datos adecuados
+        usuarios = db.query(Usuario).filter(
+            Usuario.rol == rol,
+            Usuario.tipo_transaccion == tipo_transaccion  # Filtra por el tipo de transacción
+        ).all()
+
+        return usuarios
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener usuarios por rol: {str(e)}")
+
 
 # Funciones adicionales
 def obtener_total_ingresos(db: Session, usuario_id: int) -> float:

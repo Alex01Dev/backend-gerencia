@@ -32,7 +32,6 @@ class Usuario(UsuarioBase):
     class Config:
         from_attributes = True
 
-
 class UsuarioSimple(BaseModel):
     id: int
     nombre_usuario: str
@@ -40,3 +39,4 @@ class UsuarioSimple(BaseModel):
 
     class Config:
         from_attributes = True
+

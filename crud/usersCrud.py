@@ -59,6 +59,7 @@ def create_user(db: Session, user: schemas.userSchemas.UsuarioCreate):
     db.refresh(db_user)
     return db_user
 
+
     # Obtener todos los usuarios con rol "Gerente"
 def get_usuarios_gerentes(db: Session):
     return (

@@ -3,31 +3,23 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from config.db import Base
 
-
 class UsuarioRol(Base):
     __tablename__ = "tbd_usuarios_roles"
     __table_args__ = {
         'comment': 'Tabla intermedia que establece la relación entre usuarios y roles, permitiendo asignar múltiples roles a un usuario y definir sus permisos en el sistema.'
     }
 
-    Usuario_ID = Column(Integer, ForeignKey('tbb_usuarios.id'), primary_key=True,  # Cambiado 'ID' a 'id'
-                        comment='Descripción: Identificador del Usuario. Hace referencia a la tabla Usuarios.\nNaturaleza: Cuantitativa\nDominio: Números enteros positivos\nComposición: 1 a 9 dígitos (0-9)')
+    Usuario_ID = Column(Integer, ForeignKey('tbb_usuarios.id'), primary_key=True)
+    Rol_ID = Column(Integer, ForeignKey('tbc_roles.ID'), primary_key=True)
+    Estatus = Column(Boolean, nullable=False)
+    Fecha_Registro = Column(DateTime, nullable=False, default=datetime.utcnow)
+    Fecha_Actualizacion = Column(DateTime, nullable=True)
 
-    Rol_ID = Column(Integer, ForeignKey('tbc_roles.ID'), primary_key=True,
-                    comment='Descripción: Identificador del rol el cual le es asignado a un usuario.\nNaturaleza: Cuantitativa\nDominio: Números enteros positivos\nComposición: 1 a 9 dígitos (0-9)')
+    # Definir las relaciones sin conflicto en los backref
+    usuario = relationship("Usuario", back_populates="roles", overlaps="roles_de_usuario")
+    rol = relationship("Rol", back_populates="usuarios", overlaps="usuarios_con_rol")
 
-    Estatus = Column(Boolean, nullable=False,
-                     comment='Descripción: Dato de Auditoría que define el estatus actual del registro, siendo Activo (1) o Inactivo (0) para uso en el sistema\nNaturaleza: Cuantitativa\nDominio: Booleano\nComposición: [0|1]')
-
-    Fecha_Registro = Column(DateTime, nullable=False, default=datetime.utcnow,
-                            comment='Descripción: Fecha y hora exacta en que se registró la asignación del rol al usuario.\nNaturaleza: Cuantitativa\nDominio: Fecha y hora válida')
-
-    Fecha_Actualizacion = Column(DateTime, nullable=True,
-                                 comment='Descripción: Última fecha y hora en que se modificó la asignación de rol al usuario.\nNaturaleza: Cuantitativa\nDominio: Fecha y hora válida')
-
-    # Relaciones
-    usuario = relationship("Usuario")
-    rol = relationship("Rol")
+    transacciones = relationship("Transaccion", back_populates="usuario_rol")
     sucursal = relationship("Sucursal", back_populates="responsable", uselist=False)
 
     def __repr__(self):
