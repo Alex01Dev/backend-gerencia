@@ -13,6 +13,8 @@ from models.usuarioRolesModels import UsuarioRol
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import joinedload
 from webSocket.websocket import manager
+from fastapi.encoders import jsonable_encoder
+import json
 from schemas.transaccionSchemas import (
     TransaccionCreate,
     TransaccionUpdate,
@@ -41,7 +43,6 @@ async def websocket_transacciones(websocket: WebSocket):
             await websocket.receive_text()  # Se mantiene la conexión abierta esperando datos
     except Exception:
         manager.disconnect(websocket)  # Si algo sale mal, desconectamos al cliente
-
 
 @transaccion.get("/transacciones/estadisticas", response_model=TransaccionEstadisticas, tags=["Transacciones"])
 def get_estadisticas_transacciones(
@@ -113,29 +114,24 @@ async def registrar_transaccion(
     db: Session = Depends(get_db)
 ):
     try:
-        # Crear la nueva transacción
         nueva_transaccion = crear_transaccion(db, transaccion_data.model_dump())
-        
-        # Verifica si la transacción fue creada correctamente
+        db.refresh(nueva_transaccion)
+
         if not nueva_transaccion:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error al crear la transacción")
 
-        # Obtener la transacción con sus datos asociados (usuario y rol)
         transaccion_con_datos = db.query(Transaccion).options(
-        joinedload(Transaccion.usuario_rol).joinedload(UsuarioRol.usuario),
-        joinedload(Transaccion.usuario_rol).joinedload(UsuarioRol.rol)
+            joinedload(Transaccion.usuario_rol).joinedload(UsuarioRol.usuario),
+            joinedload(Transaccion.usuario_rol).joinedload(UsuarioRol.rol)
         ).filter(Transaccion.id == nueva_transaccion.id).one_or_none()
 
-        # Si no se encuentra la transacción, lanzar un error
         if not transaccion_con_datos:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transacción no encontrada")
 
-        # Asignar 'nombre_usuario' y 'rol' de manera segura
         usuario_rol = transaccion_con_datos.usuario_rol
         nombre_usuario = usuario_rol.usuario.nombre_usuario if usuario_rol and usuario_rol.usuario else None
         rol = usuario_rol.rol.Nombre if usuario_rol and usuario_rol.rol else None
 
-        # Crear el objeto TransaccionResponse directamente con los campos requeridos
         transaccion_response = TransaccionResponse(
             id=transaccion_con_datos.id,
             detalles=transaccion_con_datos.detalles,
@@ -150,18 +146,21 @@ async def registrar_transaccion(
             rol=rol
         )
 
+        # ✅ Solo mandamos una señal, no la lista completa
+        await manager.broadcast({
+            "action": "actualizar_transacciones"
+        })
+
         return transaccion_response
 
     except HTTPException as e:
-        # Capturar y levantar errores específicos de HTTP
         raise e
-
     except Exception as e:
-        # Mejorar la captura del error para ver más detalles
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al registrar transacción: {str(e)}"
         )
+
 
 
 @transaccion.get("/obtener-todo", response_model=List[TransaccionResponse], tags=["Transacciones"])

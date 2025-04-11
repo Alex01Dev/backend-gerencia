@@ -100,7 +100,7 @@ def obtener_todas_transacciones(
             query = query.filter(Transaccion.metodo_pago == metodo_pago)
         if estatus:
             query = query.filter(Transaccion.estatus == estatus)
-        if usuario_id:
+        if usuario_id:      
             query = query.filter(Transaccion.usuario_id == usuario_id)
         if fecha_inicio:
             query = query.filter(Transaccion.fecha_registro >= fecha_inicio)
