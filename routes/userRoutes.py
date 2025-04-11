@@ -8,6 +8,10 @@ from schemas.userSchemas import UsuarioSimple
 from models.usuarioRolesModels import UsuarioRol 
 from models.usersModels import Usuario
 from models.personasModels import Persona
+from models.rolesModels import Rol
+from schemas.userSchemas import UsuarioBase
+from schemas.userSchemas import UsuarioSimple
+from typing import List
 from schemas.userSchemas import UsuarioLogin, Usuario, UsuarioCreate, UsuarioUpdate
 from crud.usersCrud import get_user_by_nombre_usuario
 from config.jwt import create_access_token, get_current_user
@@ -139,3 +143,4 @@ def obtener_gerentes(db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No se encontraron usuarios con rol Gerente")
 
     return [{"id": u.id, "nombre_usuario": u.nombre_usuario, "estatus": u.estatus} for u in usuarios]
+

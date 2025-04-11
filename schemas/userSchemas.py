@@ -39,3 +39,4 @@ class UsuarioSimple(BaseModel):
 
     class Config:
         from_attributes = True
+
