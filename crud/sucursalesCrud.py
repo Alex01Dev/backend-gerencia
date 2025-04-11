@@ -37,6 +37,7 @@ def get_sucursales(db: Session, skip: int = 0, limit: int = 10) -> List[Sucursal
         ))
 
     return result
+
     
 # Obtener una sucursal por ID
 def get_sucursal(db: Session, id: int):

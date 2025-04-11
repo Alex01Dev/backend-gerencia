@@ -162,7 +162,6 @@ async def registrar_transaccion(
         )
 
 
-
 @transaccion.get("/obtener-todo", response_model=List[TransaccionResponse], tags=["Transacciones"])
 def listar_todas_transacciones(
     db: Session = Depends(get_db),

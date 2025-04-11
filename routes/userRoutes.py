@@ -1,8 +1,10 @@
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from config.db import get_db
+from schemas.userSchemas import UsuarioSimple
 from models.usuarioRolesModels import UsuarioRol 
 from models.usersModels import Usuario
 from models.personasModels import Persona
@@ -126,3 +128,14 @@ async def get_usuario_con_datos_persona(nombre_usuario: str, db: Session = Depen
     }
 
     return resultado
+
+from crud.usersCrud import get_usuarios_gerentes  # importa tu función
+
+@user.get("/gerentes", response_model=List[UsuarioSimple])
+def obtener_gerentes(db: Session = Depends(get_db)):
+    usuarios = get_usuarios_gerentes(db)
+
+    if not usuarios:
+        raise HTTPException(status_code=404, detail="No se encontraron usuarios con rol Gerente")
+
+    return [{"id": u.id, "nombre_usuario": u.nombre_usuario, "estatus": u.estatus} for u in usuarios]

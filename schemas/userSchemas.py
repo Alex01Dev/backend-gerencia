@@ -31,3 +31,11 @@ class Usuario(UsuarioBase):
 
     class Config:
         from_attributes = True
+
+class UsuarioSimple(BaseModel):
+    id: int
+    nombre_usuario: str
+    estatus: str
+
+    class Config:
+        from_attributes = True
