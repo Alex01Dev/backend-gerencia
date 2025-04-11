@@ -5,6 +5,7 @@ from routes.userRoutes import user
 from routes.personaRoutes import persona
 from routes.transaccionRoutes import transaccion
 from routes.sucursalRoutes import sucursal
+from models.bitacoraModels import Bitacora
 
 # Importar los seeders para registrar los eventos after_create
 from seeders.personaSeeder import seed_personas
